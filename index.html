@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFPea - Edit PDFs Online Securely and Free | Privacy-First PDF Editor</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Edit PDFs securely in your browser with PDFPea. Add text, images, shapes, and annotations without uploading files. 100% free, locally-processed, and privacy-focused PDF editor.">
+    <meta name="keywords" content="PDF editor, edit PDF online, free PDF editor, secure PDF editing, local PDF editor, add text to PDF, PDF annotation, browser PDF editor, privacy PDF tool">
+    <meta name="author" content="PDFPea Team">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pdfpea.com/">
+    <meta property="og:title" content="PDFPea - Edit PDFs Online Securely and Free">
+    <meta property="og:description" content="Edit PDFs securely in your browser with PDFPea. Add text, images, shapes, and annotations without uploading files. 100% free, locally-processed, and privacy-focused PDF editor.">
+    <meta property="og:image" content="https://pdfpea.com/images/landing-editor.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="PDFPea">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://pdfpea.com/">
+    <meta property="twitter:title" content="PDFPea - Edit PDFs Online Securely and Free">
+    <meta property="twitter:description" content="Edit PDFs securely in your browser with PDFPea. Add text, images, shapes, and annotations without uploading files. 100% free, locally-processed, and privacy-focused PDF editor.">
+    <meta property="twitter:image" content="https://pdfpea.com/images/landing-editor.png">
+    <meta property="twitter:creator" content="@pdfpea">
+    <meta property="twitter:site" content="@pdfpea">
+    
+    <!-- Additional SEO Tags -->
+    <link rel="canonical" href="https://pdfpea.com/">
+    <meta name="theme-color" content="#007acc">
+    <meta name="application-name" content="PDFPea">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/images/logo-square.svg">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "PDFPea",
+        "alternateName": "PDF Editor Online",
+        "description": "Edit PDFs securely in your browser with PDFPea. Add text, images, shapes, and annotations without uploading files. 100% free, locally-processed, and privacy-focused PDF editor.",
+        "url": "https://pdfpea.com",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web Browser",
+        "permissions": "None required",
+        "isAccessibleForFree": true,
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Add text to PDF",
+            "Add images to PDF", 
+            "Add shapes and annotations",
+            "Highlight PDF text",
+            "Local processing capability",
+            "No file upload required",
+            "Privacy-focused design"
+        ],
+        "browserRequirements": "Modern web browser with JavaScript enabled",
+        "creator": {
+            "@type": "Organization",
+            "name": "PDFPea Team",
+            "url": "https://pdfpea.com"
+        },
+        "screenshot": "https://pdfpea.com/images/landing-editor.png",
+        "softwareVersion": "1.0",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "150"
+        }
+    }
+    </script>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4NPK3X59DH"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-4NPK3X59DH');
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap">
+
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/f12622f0dc.js" crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-blue': '#007acc',
+                        'brand-light-blue': '#f0f8ff',
+                        'brand': {
+                            50: '#f0f8ff',
+                            100: '#e6f3ff',
+                            200: '#cce7ff',
+                            300: '#99d6ff',
+                            400: '#66c4ff',
+                            500: '#33b2ff',
+                            600: '#007acc',
+                            700: '#0066b3',
+                            800: '#005299',
+                            900: '#003d80',
+                        }
+                    },
+                    maxWidth: {
+                        '8xl': '88rem',   // 1408px
+                        '9xl': '96rem',   // 1536px
+                        '10xl': '104rem', // 1664px
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Ensure the Vue app fits nicely within the landing page */
+        #app .pdf-editor {
+            background: transparent;
+        }
+        
+        #app .floating-toolbar {
+            /* position: absolute !important; */
+        }
+        
+        /* Style the placeholder for landing page context */
+        #app .pdf-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+        }
+        
+        /* Hero gradient */
+        .hero-gradient {
+            background: linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #dbeafe 100%);
+            padding-bottom: 60px;
+        }
+        
+        /* CTA gradient */
+        .cta-gradient {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+        }
+        
+        /* Feature card gradients */
+        .feature-green {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        }
+        .feature-blue {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        }
+        .feature-purple {
+            background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+        }
+        .feature-orange {
+            background: linear-gradient(135deg, #fff7ed, #fed7aa);
+        }
+        .feature-pink {
+            background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+        }
+        .feature-indigo {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- Navigation -->
+
+
+    <!-- Hero Section -->
+    <section class="hero-gradient">
+
+        <nav class="">
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+                <div class="flex justify-between items-center h-30">
+                    <div class="flex items-center">
+                        <img src="/images/logo-export.svg" style="width: 250px;"/>
+                       
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="#features" class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-lg font-medium">Features</a>
+                            <a href="#app" class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-lg font-medium">Editor</a>
+                            <a href="#about" class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-lg font-medium">About</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>        
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-2 pb-10">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+                <div class="space-y-6 lg:col-span-2">
+                    <div class="space-y-4">
+                        <h1 class="text-4xl md:text-4xl/2 lg:text-4xl/2 font-bold text-gray-900 leading-tight">
+                            Edit PDFs
+                            <span class="text-blue-600">Securely</span>
+                            <br>in Your Browser Online & Free!
+                        </h1>
+                        <p class="text-xl text-gray-600 leading-relaxed">
+                            PDF editing tools that work completely locally. Add text, images, shapes, annotations, and more without uploading your files to any server.
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <i class="fas fa-shield-alt text-green-500"></i>
+                            <span class="font-medium">100% Free, Secure & Private</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <i class="fas fa-wifi text-gray-400 line-through"></i>
+                            <span class="font-medium">No Internet Required</span>
+                        </div>
+
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <i class="fas fa-user-slash text-blue-500"></i>
+                            <span class="font-medium">No Sign Up Required</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <input type="file" id="heroFileInput" accept=".pdf" class="hidden" onchange="handleHeroFileUpload(event)">
+                            <button onclick="document.getElementById('heroFileInput').click()" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 flex items-center space-x-3 shadow-lg hover:shadow-xl">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload PDF & Start Editing</span>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500">Or drag and drop your PDF file in the browser</p>
+                    </div>
+                </div>
+
+                <div class="relative lg:col-span-3">
+                    <div class="bg-white rounded-2xl shadow-2xl p-1 transform rotate-0 
+                    hover:rotate-1 transition-transform duration-300 cursor-pointer" 
+                    onclick="scrollToEditor()">
+                    <img src="images/landing-editor.png" class="rounded-2xl"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PDF Editor Section -->
+    <section id="editor" class="py-20 bg-gray-50">
+        <div class="max-w-10xl  mx-auto px-4 sm:px-6 lg:px-8 p-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Powerful PDF Editor
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Experience PDF editing with an intuitive interface designed for both beginners and experts.
+                </p>
+            </div>
+
+            <!-- Vue PDF Editor App -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div id="app" style="min-height: 100%;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Why Choose Our PDF Editor?
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Built with privacy and security in mind, our editor offers features without compromising your data.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-green rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-shield-alt text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">100% Secure</h3>
+                    <p class="text-gray-600">
+                        Your files never leave your device. All processing happens locally in your browser, ensuring complete privacy and security.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-blue rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-hard-drive text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Processes Locally</h3>
+                    <p class="text-gray-600">
+                        All PDF processing happens locally in your browser. Your files are never uploaded to any server, ensuring complete privacy.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-purple rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-tools text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Versatile Tools</h3>
+                    <p class="text-gray-600">
+                        Complete set of editing tools including text, images, shapes, annotations and more.
+                    </p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-orange rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-bolt text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Lightning Fast</h3>
+                    <p class="text-gray-600">
+                        Optimized for speed and performance. Edit large PDFs smoothly with real-time preview and instant changes.
+                    </p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-pink rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-mobile-alt text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Any Device</h3>
+                    <p class="text-gray-600">
+                        Works perfectly on desktop, tablet, and mobile devices. Responsive design adapts to any screen size.
+                    </p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-indigo rounded-xl p-8 text-center">
+                    <div class="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-download text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Export Ready</h3>
+                    <p class="text-gray-600">
+                        Download your edited PDFs instantly. Maintains original quality and formatting with all your changes applied.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Us Section -->
+    <section id="about" class="py-20 bg-white mb-5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    About Our Team
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    We're dedicated to simplifying PDF creation and editing with privacy-first solutions.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          
+                <div class="space-y-4">
+                    <h3 class="text-2xl font-bold text-gray-900">Our Mission</h3>
+                    <p class="text-gray-600 text-lg leading-relaxed">
+                        Hello and welcome! We are a dedicated team based in Singapore 🇸🇬, working towards simplifying the process of PDF generation and creation. Our inspiration is to develop user-friendly tools that allow users to effortlessly create and edit PDF documents while maintaining complete privacy and security.
+                    </p>
+                    <p class="text-gray-600 text-lg leading-relaxed">
+                        This PDF editor was built with the philosophy that your sensitive documents should never leave your device. All processing happens locally in your browser, ensuring your data remains completely private.
+                    </p>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Need More PDF Solutions?</h4>
+                    <p class="text-gray-600 mb-4">
+                        For developers and businesses requiring PDF generation APIs, we also offer professional solutions:
+                    </p>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-external-link-alt text-blue-600"></i>
+                            <a href="https://craftmypdf.com" target="_blank" rel="noopener noreferrer" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                                CraftMyPDF - Drag & Drop PDF Template Editor
+                            </a>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-external-link-alt text-blue-600"></i>
+                            <a href="https://apitemplate.io" target="_blank" rel="noopener noreferrer" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                                APITemplate.io - HTML to PDF Generation API
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- CTA to use editor below -->
+            <div class="mt-16 text-center">
+                <div class="cta-gradient rounded-2xl p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-4">Ready to Try It Out?</h3>
+                    <p class="text-xl text-blue-100 mb-6">
+                        Drag and drop your PDF file into the editor below to start editing immediately!
+                    </p>
+                    <div class="flex items-center justify-center space-x-2 text-blue-200">
+                        <i class="fas fa-arrow-down text-2xl animate-bounce"></i>
+                        <span class="text-lg font-medium">PDF Editor Below</span>
+                        <i class="fas fa-arrow-down text-2xl animate-bounce"></i>
+                    </div>
+                    <div class="flex items-center justify-center space-x-2 text-blue-600 pt-4">
+                        <input type="file" id="ctaFileInput" accept=".pdf" class="hidden" onchange="handleCtaFileUpload(event)">
+                        <button onclick="document.getElementById('ctaFileInput').click()" 
+                                class="bg-white hover:bg-gray-100 font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 inline-flex items-center space-x-3 shadow-lg hover:shadow-xl">
+                            <i class="fas fa-upload"></i>
+                            <span>Upload and Edit Your PDF</span>
+                        </button>
+                      
+                    </div>     
+                    
+                    <div class="flex items-center justify-center space-x-2 text-blue-200 pt-4">
+                        <p class="text-sm">No registration required • Completely free</p>
+                    </div>     
+                                        
+
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal Information Section with Tabs -->
+    <section id="legal" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Privacy Policy & Terms of Service
+                </h2>
+                <p class="text-xl text-gray-600">
+                    Important policies and terms for using PDFPea services.
+                </p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-t-xl shadow-lg">
+                <div class="flex border-b border-gray-200">
+                    <button id="privacy-tab" onclick="switchTab('privacy')" 
+                            class="flex-1 py-4 px-6 text-center font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50">
+                        Privacy Policy
+                    </button>
+                    <button id="terms-tab" onclick="switchTab('terms')" 
+                            class="flex-1 py-4 px-6 text-center font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">
+                        Terms of Service
+                    </button>
+                </div>
+
+                <!-- Privacy Policy Tab Content -->
+                <div id="privacy-content" class="p-8 space-y-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Data Processing</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            PDFPea processes all PDF files locally in your browser. Your files never leave your device and are not uploaded to our servers or any third-party services. All editing operations happen entirely on your local machine.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Information We Collect</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            We use Google Analytics to collect anonymous usage statistics such as page views, browser type, and general location data. We do not collect personal information, email addresses, or any data that could identify individual users.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">No File Storage</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            We do not store, backup, or retain any PDF files or documents you edit. All files remain on your device throughout the editing process and are permanently deleted from browser memory when you close the application.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Cookies</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            We use essential cookies for website functionality and Google Analytics cookies for usage statistics. You can disable cookies in your browser settings, though this may affect website functionality.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Contact</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            If you have questions about this Privacy Policy, please contact us at <a href="mailto:hello@pdfpea.com" class="text-blue-600 hover:text-blue-700">hello@pdfpea.com</a>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Terms of Service Tab Content -->
+                <div id="terms-content" class="p-8 space-y-6 hidden">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Service Description</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            PDFPea provides a free, browser-based PDF editing service that processes files entirely locally. The service allows users to edit PDF documents without uploading files to external servers.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">User Responsibilities</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            Users are responsible for ensuring they have the right to edit any PDF documents they process through our service. Users must not use the service for illegal activities or to process copyrighted material without permission.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Service Availability</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            We strive to maintain high service availability but do not guarantee uninterrupted access. The service is provided "as is" without warranties of any kind.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Limitation of Liability</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            PDFPea shall not be liable for any damages arising from the use of our service, including but not limited to data loss, file corruption, or service interruptions.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Changes to Terms</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting. Continued use of the service constitutes acceptance of modified terms.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Contact Information</h3>
+                        <p class="text-gray-600 leading-relaxed pl-5">
+                            For questions about these Terms of Service, please contact us at <a href="mailto:hello@pdfpea.com" class="text-blue-600 hover:text-blue-700">hello@pdfpea.com</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-8">
+                <div class="md:col-span-2 lg:col-span-3 pr-5">
+                    <div class="flex items-center mb-4">
+                        <img src="/images/logo-square.svg" style="width: 80px;"/>
+                    </div>
+                    
+                    <p class="text-gray-400 mb-6 max-w-md">
+                        PDFPea.com is a PDF editing tools that respect your privacy. Edit documents securely in your browser without uploading files to any server.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="mailto:hello@pdfpea.com" class="text-gray-400 hover:text-white transition-colors" title="Email us">
+                            <i class="fas fa-envelope text-xl"></i>
+                        </a>
+                        <a href="https://x.com/pdfpea" target="_blank" class="text-gray-400 hover:text-white transition-colors" title="Follow us on X/Twitter">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                    </div>
+
+
+ 
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-3">
+                    <h3 class="text-lg font-semibold m-0 mb-2 border-b-4 border-indigo-900">Our Other Products</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="https://craftmypdf.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">CraftMyPDF - Template Editor</a></li>
+                        <li><a href="https://apitemplate.io" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">APITemplate.io - PDF Generation API</a></li>
+                    </ul>
+                </div> 
+
+                <div class="md:col-span-2 lg:col-span-2">
+                    <h3 class="text-lg font-semibold  m-0 mb-2 border-b-4 border-indigo-900">Features</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#features" class="hover:text-white transition-colors">Add Text to PDF</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Add Images to PDF</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Add Lines to PDF</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Whiteout PDF</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Add Links to PDF</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Highlight PDF</a></li>
+                    </ul>
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-2">
+                    <h3 class="text-lg font-semibold  m-0 mb-2 border-b-4 border-indigo-900">Support</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#legal" onclick="setTimeout(() => switchTab('privacy'), 500)" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#legal" onclick="setTimeout(() => switchTab('terms'), 500)" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="mailto:hello@pdfpea.com" class="hover:text-white transition-colors">Contact Us at hello@pdfpea.com</a></li>
+                    </ul>
+                </div>
+
+
+            </div>
+
+            <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm">
+                    © <span id="current-year"></span> PDFPea.com All rights reserved.
+                </p>
+                <p class="text-gray-400 text-sm mt-4 md:mt-0">
+                    Made with ❤️ for privacy-conscious users
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Drag and Drop Overlay -->
+    <div id="dropOverlay" class="fixed inset-0 bg-blue-600 bg-opacity-90 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="text-center text-white">
+            <i class="fas fa-cloud-upload-alt text-6xl mb-4"></i>
+            <h3 class="text-2xl font-bold mb-2">Drop your PDF here</h3>
+            <p class="text-blue-200">Release to start editing</p>
+        </div>
+    </div>
+
+    <script>
+        // File upload handlers
+        function handleHeroFileUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                redirectToEditor(file);
+            }
+        }
+
+        function handleCtaFileUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                redirectToEditor(file);
+            }
+        }
+
+        function redirectToEditor(file) {
+            // Scroll to the app container and load the file
+            const appContainer = document.getElementById('app');
+            appContainer.scrollIntoView({ behavior: 'smooth' });
+            
+            // Store the file for the Vue app to pick up
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                sessionStorage.setItem('pdfFile', e.target.result);
+                sessionStorage.setItem('pdfFileName', file.name);
+                // Trigger file load event for Vue app
+                setTimeout(() => {
+                    const event = new CustomEvent('loadPdfFromLanding', {
+                        detail: { fileData: e.target.result, fileName: file.name }
+                    });
+                    window.dispatchEvent(event);
+                }, 500);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Drag and drop functionality
+        let dragCounter = 0;
+
+        document.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+            dragCounter++;
+            if (dragCounter === 1) {
+                document.getElementById('dropOverlay').classList.remove('hidden');
+            }
+        });
+
+        document.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
+                document.getElementById('dropOverlay').classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dragCounter = 0;
+            document.getElementById('dropOverlay').classList.add('hidden');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    redirectToEditor(file);
+                } else {
+                    alert('Please drop a PDF file.');
+                }
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Set current year dynamically
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Scroll to PDF editor function
+        function scrollToEditor() {
+            const editorSection = document.getElementById('app');
+            if (editorSection) {
+                editorSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.getElementById('privacy-content').classList.add('hidden');
+            document.getElementById('terms-content').classList.add('hidden');
+            
+            // Remove active styles from all tabs
+            document.getElementById('privacy-tab').classList.remove('text-blue-600', 'border-blue-600', 'bg-blue-50');
+            document.getElementById('privacy-tab').classList.add('text-gray-500', 'border-transparent');
+            document.getElementById('terms-tab').classList.remove('text-blue-600', 'border-blue-600', 'bg-blue-50');
+            document.getElementById('terms-tab').classList.add('text-gray-500', 'border-transparent');
+            
+            // Show selected tab content and apply active styles
+            if (tabName === 'privacy') {
+                document.getElementById('privacy-content').classList.remove('hidden');
+                document.getElementById('privacy-tab').classList.remove('text-gray-500', 'border-transparent');
+                document.getElementById('privacy-tab').classList.add('text-blue-600', 'border-blue-600', 'bg-blue-50');
+            } else if (tabName === 'terms') {
+                document.getElementById('terms-content').classList.remove('hidden');
+                document.getElementById('terms-tab').classList.remove('text-gray-500', 'border-transparent');
+                document.getElementById('terms-tab').classList.add('text-blue-600', 'border-blue-600', 'bg-blue-50');
+            }
+        }
+    </script>
+    
+    <!-- Load Vue PDF Editor App -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html> 
