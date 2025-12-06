@@ -1,3 +1,9 @@
+## TL;DR
+PDFPea is an editing tool that works completely locally. Add text, images, shapes, annotations, and more without uploading your files to any server.
+
+Working website: [pdfpea.com](https://pdfpea.com)
+
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
@@ -42,3 +48,6 @@ npm run build
 ```sh
 npm run lint
 ```
+
+## License
+MIT License.
