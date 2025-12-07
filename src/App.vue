@@ -116,7 +116,16 @@
               <option value="3.0">300%</option>
             </select>
           </div>
-
+          <div class="option-element">
+            <button
+              @click="openMergeDialog"
+              class="btn ml-4"
+              title="Merge multiple PDF files"
+            >
+              <i class="fa-solid fa-object-group mr-2"></i>
+              Merge PDFs
+            </button>
+          </div>
           <!-- Freehand tool options -->
           <template v-if="selectedTool === 'freehand'">
             <div class="option-element">
@@ -595,6 +604,14 @@
     <!-- Link Dialog Component -->
     <LinkDialog :show="showLinkDialog" @close="closeLinkDialog" @confirm="handleLinkConfirm" />
 
+    <!-- Merge Dialog Component -->
+    <MergeDialog
+      :show="showMergeDialog"
+      :initialFile="initialFile"
+      @close="closeMergeDialog"
+      :showToast="showToast"
+    />
+
     <div class="pdf-body">
       <!-- Floating Toolbar -->
       <div class="floating-toolbar">
@@ -797,6 +814,7 @@ import { ref, onMounted, nextTick, watch } from "vue";
 import { PDFEditor } from "./js/PDFEditor.js";
 import ImageDialog from "./components/ImageDialog.vue";
 import LinkDialog from "./components/LinkDialog.vue";
+import MergeDialog from "./components/MergeDialog.vue";
 import { freehandDrawing } from "./utils/FreehandDrawing.js";
 
 export default {
@@ -804,6 +822,7 @@ export default {
   components: {
     ImageDialog,
     LinkDialog,
+    MergeDialog,
   },
   setup() {
     console.log("Vue setup() function called - this means Vue is working");
@@ -816,7 +835,7 @@ export default {
     const counter = ref(0);
     const zoomLevel = ref(1.5);
     const selectedTool = ref("select");
-
+    const initialFile = ref([]);
     // Icon cache for base64 encoded SVGs
     const iconCache = ref({});
 
@@ -939,6 +958,9 @@ export default {
     const showLinkDialog = ref(false);
     const pendingLinkData = ref(null);
 
+    // Merge dialog state
+    const showMergeDialog = ref(false);
+
     // Config dropdown state
     const showConfigDropdown = ref(false);
 
@@ -1023,6 +1045,23 @@ export default {
     const closeLinkDialog = () => {
       showLinkDialog.value = false;
       pendingLinkData.value = null;
+    };
+
+    // Merge dialog functions
+    const openMergeDialog = async () => {
+      if (pdfEditor && isLoaded.value) {
+        const pdfBytes = await pdfEditor.downloadPDF();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const currentFile = new File([blob], "current_file.pdf", { type: "application/pdf" });
+        initialFile.value = [currentFile];
+      } else {
+        initialFile.value = [];
+      }
+      showMergeDialog.value = true;
+    };
+
+    const closeMergeDialog = () => {
+      showMergeDialog.value = false;
     };
 
     // Config dropdown functions
@@ -2252,7 +2291,7 @@ export default {
         return strokeWidthMatch ? parseFloat(strokeWidthMatch[1]) : 2;
       } catch (error) {
         console.error("Error parsing SVG:", error);
-        return 2;
+               return 2;
       }
     };
 
@@ -2798,6 +2837,10 @@ export default {
       openLinkDialog,
       handleLinkConfirm,
       closeLinkDialog,
+      initialFile,
+      showMergeDialog,
+      openMergeDialog,
+      closeMergeDialog,
       showConfigDropdown,
       toggleConfigDropdown,
       closeConfigDropdown,
