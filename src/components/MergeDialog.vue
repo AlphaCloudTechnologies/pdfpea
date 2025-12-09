@@ -1,18 +1,21 @@
 <template>
-  <div v-if="show" class="merge-dialog-overlay" @click="handleOverlayClick"
+  <div
+    v-if="show"
+    class="image-dialog-overlay"
+    @click="handleOverlayClick"
     @dragenter.stop
     @dragover.stop
     @drop.stop
   >
-    <div class="merge-dialog" @click.stop>
-      <div class="merge-dialog-header">
+    <div class="image-dialog" @click.stop>
+      <div class="image-dialog-header">
         <h3>Merge PDF Files</h3>
         <button @click="closeDialog" class="dialog-close-btn">&times;</button>
       </div>
 
-      <div class="merge-dialog-content">
+      <div class="image-dialog-content">
         <!-- Upload Section -->
-        <div class="merge-upload-section">
+        <div class="image-upload-section">
           <div
             class="upload-area"
             @click="triggerFileInput"
@@ -33,7 +36,7 @@
           </div>
         </div>
         <!-- Progress -->
-        <div v-if="progress > 0" class="merge-progress">
+        <div v-if="progress > 0" class="progress">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: progress + '%' }"></div>
           </div>
@@ -45,9 +48,7 @@
           <p>{{ error }}</p>
         </div>
         <!-- Files List -->
-        <div v-if="pdfFiles.length > 0"
-          class="files-list"
-        >
+        <div v-if="pdfFiles.length > 0" class="files-list">
           <h4>Files to Merge ({{ pdfFiles.length }}):</h4>
           <div class="files-container">
             <div
@@ -63,15 +64,13 @@
                 <i class="fa-solid fa-grip-vertical"></i>
               </div>
               <div class="file-info">
-                <i class="fa-solid fa-file-pdf file-icon"></i>
+                <i class="fa-solid fa-file-pdf"></i>
                 <div class="file-details">
                   <span class="file-name">{{ file.name }}</span>
                   <span class="file-size">{{ formatFileSize(file.size) }}</span>
                 </div>
               </div>
-              <button @click="removeFile(index)" class="remove-btn" title="Remove">
-                <i class="fa-solid fa-times"></i>
-              </button>
+              <button @click="removeFile(index)" class="dialog-close-btn">&times;</button>
             </div>
           </div>
           <p class="reorder-hint">
@@ -79,18 +78,16 @@
             Drag and drop to reorder files
           </p>
         </div>
-
       </div>
 
-      <div class="merge-dialog-footer">
+      <div class="image-dialog-footer">
         <button @click="closeDialog" class="btn-secondary" :disabled="merging">Cancel</button>
-        <button
-          v-if="mergedPdfBytes"
-          @click="downloadPDF"
-          class="download-btn"
-        >
+        <button v-if="mergedPdfBytes" @click="downloadPDF" class="btn-success">
           <i class="fa-solid fa-download"></i>
-          Download PDF
+        </button>
+        <button v-if="mergedPdfBytes" @click="mergeEditor" class="btn-primary">
+          <i class="fa-solid fa-file-import mr-0.5"></i>
+          Add to Editor
         </button>
         <button
           v-else
@@ -125,7 +122,7 @@ export default {
       default: () => [],
     },
   },
-  emits: ["close"],
+  emits: ["close", "merge"],
   setup(props, { emit }) {
     const pdfFiles = ref([]);
     const fileInput = ref(null);
@@ -135,7 +132,6 @@ export default {
     const draggedIndex = ref(null);
     const mergedPdfBytes = ref(null);
     const mergedFileName = ref("");
-    const dragOverIndex = ref(null);
 
     // Set error message with auto-clear
     const setError = (msg) => {
@@ -147,12 +143,15 @@ export default {
       }
     };
     // Reset state when dialog is opened
-    watch(() => props.show, (newValue) => {
-      if (newValue) {
-        resetState();
-        pdfFiles.value = [...props.initialFile];
-      }
-    },);
+    watch(
+      () => props.show,
+      (newValue) => {
+        if (newValue) {
+          resetState();
+          pdfFiles.value = [...props.initialFile];
+        }
+      },
+    );
 
     const resetState = () => {
       pdfFiles.value = [];
@@ -229,7 +228,7 @@ export default {
       const k = 1024;
       const sizes = ["Bytes", "KB", "MB", "GB"];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
     };
 
     // Drag and drop reordering
@@ -243,7 +242,6 @@ export default {
       pdfFiles.value.splice(draggedIndex.value, 1);
       pdfFiles.value.splice(dropIndex, 0, draggedFile);
       draggedIndex.value = null;
-      dragOverIndex.value = null;
     };
 
     const mergePDFs = async () => {
@@ -297,16 +295,17 @@ export default {
         if (mergedPdfBytes.value) {
           merging.value = false;
         }
-      }
-      catch (err) {
+      } catch (err) {
         console.error("Error merging PDFs:", err);
         setError("Failed to merge PDFs. Please make sure all files are valid PDF documents.");
-        if (props.showToast) props.showToast(error.value, "error");
         merging.value = false;
         progress.value = 0;
       }
     };
 
+    const mergeEditor = () => {
+      emit("merge", new Blob([mergedPdfBytes.value], { type: "application/pdf" }));
+    };
     const downloadPDF = () => {
       if (!mergedPdfBytes.value) return;
       const blob = new Blob([mergedPdfBytes.value], { type: "application/pdf" });
@@ -316,23 +315,6 @@ export default {
       a.download = mergedFileName.value;
       document.body.appendChild(a);
       a.click();
-      let downloadHandled = false;
-
-      const onFocus = () => {
-        if (!downloadHandled) {
-          downloadHandled = true;
-          merging.value = false;
-          progress.value = 0;
-          closeDialog();
-          window.removeEventListener("focus", onFocus);
-        }
-      };
-
-      window.addEventListener("focus", onFocus);
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 1000);
     };
 
     return {
@@ -353,329 +335,16 @@ export default {
       handleDropReorder,
       mergePDFs,
       downloadPDF,
+      mergeEditor,
       setError,
     };
   },
 };
 </script>
 
-<style scoped>
-.merge-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-}
-
-.merge-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 600px;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.merge-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-}
-
-.merge-dialog-header h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.dialog-close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.dialog-close-btn:hover {
-  background: white;
-}
-
-.merge-dialog-content {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-}
-
-.upload-area {
-  border: 2px dashed #ccc;
-  border-radius: 8px;
-  padding: 40px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #fafafa;
-}
-
-.upload-area:hover {
-  border-color: #667eea;
-  background: #f0f4ff;
-}
-
-.upload-icon {
-  font-size: 48px;
-  color: #667eea;
-  margin-bottom: 16px;
-}
-
-.upload-area p {
-  margin: 8px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.upload-hint {
-  color: #999 !important;
-  font-size: 12px !important;
-}
-
-.files-list {
-  margin-top: 24px;
-}
-
-.files-list h4 {
-  margin: 0 0 12px 0;
-  color: #333;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.files-container {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: move;
-  transition: background 0.2s;
-}
-
-.file-item:last-child {
-  border-bottom: none;
-}
-
-.file-item:hover {
-  background: #f8f9fa;
-}
-
-.file-drag-handle {
-  color: #999;
-  margin-right: 12px;
-  font-size: 16px;
-}
-
-.file-info {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.file-icon {
-  font-size: 24px;
-  color: #dc3545;
-}
-
-.file-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.file-name {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.file-size {
-  font-size: 12px;
-  color: #999;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  padding: 6px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.remove-btn:hover {
-  background: #ffe5e5;
-}
-
-.reorder-hint {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #666;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.merge-progress {
-  margin-top: 24px;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  transition: width 0.3s;
-}
-
-.merge-progress p {
-  text-align: center;
-  color: #666;
-  font-size: 14px;
-  margin: 0;
-}
-
+<style>
+@reference "../css/tailwind.css";
 .merge-error {
-  margin-top: 16px;
-  padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 6px;
-  color: #856404;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.merge-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-primary {
-  background:#007bca;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.btn-secondary {
-  background: white;
-  color: #666;
-  border: 1px solid #ddd;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #f8f9fa;
-}
-
-.btn-secondary:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.download-btn {
-  padding: 10px 16px;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-}
-
-.download-btn:hover {
-  background: #218838;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.download-btn i {
-  font-size: 16px;
-}
-
-.btn-primary,
-.btn-secondary,
-.remove-btn,
-.dialog-close-btn,
-.download-btn {
-  border-radius: 90px;
+  @apply mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg text-yellow-800 text-base flex items-center gap-2;
 }
 </style>

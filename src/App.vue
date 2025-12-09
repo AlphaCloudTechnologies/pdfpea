@@ -117,11 +117,7 @@
             </select>
           </div>
           <div class="option-element">
-            <button
-              @click="openMergeDialog"
-              class="btn ml-4"
-              title="Merge multiple PDF files"
-            >
+            <button @click="openMergeDialog" class="btn ml-4" title="Merge multiple PDF files">
               <i class="fa-solid fa-object-group mr-2"></i>
               Merge PDFs
             </button>
@@ -609,6 +605,7 @@
       :show="showMergeDialog"
       :initialFile="initialFile"
       @close="closeMergeDialog"
+      @merge="handleMergedPdf"
       :showToast="showToast"
     />
 
@@ -1064,6 +1061,12 @@ export default {
       showMergeDialog.value = false;
     };
 
+    const handleMergedPdf = (blob) => {
+      const file = new File([blob], "merged.pdf", { type: "application/pdf" });
+      processFile(file);
+      showMergeDialog.value = false;
+      showToast("Merged PDF loaded!", "success");
+    };
     // Config dropdown functions
     const toggleConfigDropdown = () => {
       showConfigDropdown.value = !showConfigDropdown.value;
@@ -1822,7 +1825,6 @@ export default {
     };
 
     const handleFileUpload = () => {
-      console.log("handleFileUpload called");
       const rfile = file.value.files[0];
       processFile(rfile);
     };
@@ -2291,7 +2293,7 @@ export default {
         return strokeWidthMatch ? parseFloat(strokeWidthMatch[1]) : 2;
       } catch (error) {
         console.error("Error parsing SVG:", error);
-               return 2;
+        return 2;
       }
     };
 
@@ -2841,6 +2843,7 @@ export default {
       showMergeDialog,
       openMergeDialog,
       closeMergeDialog,
+      handleMergedPdf,
       showConfigDropdown,
       toggleConfigDropdown,
       closeConfigDropdown,
