@@ -1,3 +1,4 @@
+import * as pdfjsLib from "pdfjs-dist";
 import {
   ImageOperationComponent,
   RectangleOperationComponent,
@@ -19,6 +20,12 @@ import {
   IMAGE_PATHS,
 } from "./constants.js";
 
+const DEFAULT_PDFJS_DOCUMENT_OPTIONS = {
+  cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+  iccUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/iccs/`,
+  wasmUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/wasm/`,
+};
+
 class PDFEditor {
   container = null;
   pdfPages = [];
@@ -32,7 +39,10 @@ class PDFEditor {
     this.pdfPages = [];
     return new Promise(async (resolve, reject) => {
       try {
-        const pdfDoc = await pdfjsLib.getDocument({ data: fileContents }).promise;
+        const pdfDoc = await pdfjsLib.getDocument({
+          ...DEFAULT_PDFJS_DOCUMENT_OPTIONS,
+          data: fileContents,
+        }).promise;
         const promises = [];
 
         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
@@ -115,7 +125,10 @@ class PDFPage {
     this.pageNumber = pageNumber;
 
     try {
-      const pdfDoc = await pdfjsLib.getDocument({ data: fileContents }).promise;
+      const pdfDoc = await pdfjsLib.getDocument({
+        ...DEFAULT_PDFJS_DOCUMENT_OPTIONS,
+        data: fileContents,
+      }).promise;
       const page = await pdfDoc.getPage(pageNumber);
       const viewport = page.getViewport({ scale });
 
