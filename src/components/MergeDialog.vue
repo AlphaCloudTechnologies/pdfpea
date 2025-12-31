@@ -343,5 +343,4 @@ export default {
 
 <style>
 @reference "../css/tailwind.css";
-
 </style>
