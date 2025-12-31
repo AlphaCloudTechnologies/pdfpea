@@ -39,7 +39,7 @@
     "@tailwindcss/vite": "4.1.17",
     "moveable": "0.53.0",
     "pdf-lib": "1.17.1",
-    "pdfjs-dist": "5.4.449",
+    "pdfjs-dist": "5.4.530",
     "svgpath": "2.6.0",
     "tailwindcss": "4.1.17",
     "vue": "3.5.25"
