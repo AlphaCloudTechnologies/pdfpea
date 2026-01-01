@@ -116,30 +116,15 @@
               <option value="3.0">300%</option>
             </select>
           </div>
-          <!-- Pagination Bar -->
+          <!-- Pagination -->
           <div class="option-element">
-            <div class="pagination-bar">
-              <button @click="goToPrevPage" :disabled="currentPage === 1" class="pagination-btn">
-                &#60;
-              </button>
-              <input
-                type="text"
-                :min="1"
-                :max="totalPages"
-                v-model="currentPage"
-                @change="goToPage(currentPage)"
-                class="pagination-input"
-              />
-              <span class="pagination-separator">/</span>
-              <span class="pagination-total">{{ totalPages }}</span>
-              <button
-                @click="goToNextPage"
-                :disabled="currentPage === totalPages"
-                class="pagination-btn"
-              >
-                &#62;
-              </button>
-            </div>
+            <PaginationBar
+              :currentPage="currentPage"
+              :totalPages="totalPages"
+              @prev-page="goToPrevPage"
+              @next-page="goToNextPage"
+              @go-to-page="goToPage"
+            />
           </div>
           <!-- Freehand tool options -->
           <template v-if="selectedTool === 'freehand'">
@@ -821,6 +806,7 @@ import { ref, onMounted, nextTick, watch } from "vue";
 import { PDFEditor } from "./js/PDFEditor.js";
 import ImageDialog from "./components/ImageDialog.vue";
 import LinkDialog from "./components/LinkDialog.vue";
+import PaginationBar from "./components/PaginationBar.vue";
 import { freehandDrawing } from "./utils/FreehandDrawing.js";
 
 export default {
@@ -828,6 +814,7 @@ export default {
   components: {
     ImageDialog,
     LinkDialog,
+    PaginationBar,
   },
   setup() {
     console.log("Vue setup() function called - this means Vue is working");

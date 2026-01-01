@@ -194,31 +194,3 @@
     transform: translateX(0);
   }
 }
-
-/* Pagination Styles */
-.pagination-bar {
-  @apply flex items-center justify-center py-1 px-2 mb-1 mt-1 text-lg border border-gray-300 rounded-lg;
-}
-.pagination-btn {
-  @apply bg-transparent text-black w-5 h-5 rounded flex items-center justify-center cursor-pointer transition-all border-none;
-}
-
-.pagination-btn:disabled {
-  @apply opacity-30 cursor-not-allowed hover:bg-transparent;
-}
-
-.pagination-input {
-  @apply text-base bg-white text-center w-7;
-
-  &:focus {
-    @apply outline-none;
-  }
-}
-
-.pagination-separator {
-  @apply text-base text-gray-500 mx-1;
-}
-
-.pagination-total {
-  @apply text-base text-gray-700 min-w-7 text-center;
-}
