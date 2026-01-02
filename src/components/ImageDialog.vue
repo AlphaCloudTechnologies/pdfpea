@@ -1,89 +1,78 @@
 <template>
-  <div v-if="show" class="image-dialog-overlay" @click="handleOverlayClick">
-    <div class="image-dialog" @click.stop>
-      <div class="image-dialog-header">
-        <h3>Add Image</h3>
-        <button @click="closeDialog" class="dialog-close-btn">&times;</button>
-      </div>
-
-      <div class="image-dialog-content">
-        <div class="image-dialog-tabs">
-          <button
-            :class="{ active: activeTab === 'upload' }"
-            @click="activeTab = 'upload'"
-            class="tab-btn"
-          >
-            Upload File
-          </button>
-          <button
-            :class="{ active: activeTab === 'url' }"
-            @click="activeTab = 'url'"
-            class="tab-btn"
-          >
-            From URL
-          </button>
-        </div>
-
-        <div v-if="activeTab === 'upload'" class="image-upload-section">
-          <div
-            class="upload-area"
-            @click="triggerFileInput"
-            @dragover.prevent
-            @drop.prevent="handleDrop"
-          >
-            <input
-              type="file"
-              ref="fileInput"
-              accept="image/*"
-              @change="handleFileUpload"
-              style="display: none"
-            />
-            <i class="fa-solid fa-cloud-upload-alt upload-icon"></i>
-            <p>Click to upload or drag and drop an image</p>
-            <p class="upload-hint">Supports: JPG, PNG, GIF, WebP</p>
-          </div>
-        </div>
-
-        <div v-if="activeTab === 'url'" class="image-url-section">
-          <label for="imageUrl">Image URL:</label>
-          <input
-            id="imageUrl"
-            type="url"
-            v-model="imageUrl"
-            placeholder="https://example.com/image.jpg"
-            class="url-input"
-            @keyup.enter="loadFromUrl"
-          />
-          <button @click="loadFromUrl" class="load-url-btn" :disabled="!imageUrl">
-            Load Image
-          </button>
-        </div>
-
-        <div v-if="preview" class="image-preview-section">
-          <h4>Preview:</h4>
-          <img :src="preview" alt="Preview" class="image-preview" />
-        </div>
-
-        <div v-if="error" class="image-error">
-          <p>{{ error }}</p>
-        </div>
-      </div>
-
-      <div class="image-dialog-footer">
-        <button @click="closeDialog" class="btn-secondary">Cancel</button>
-        <button @click="confirmSelection" :disabled="!preview" class="btn-primary">
-          Add Image
+  <BaseDialog :show="show" title="Add Image" @close="closeDialog">
+    <template #tabs>
+      <div class="flex gap-1 mb-5 border-b border-[#e0e0e0]">
+        <button
+          :class="{ active: activeTab === 'upload' }"
+          @click="activeTab = 'upload'"
+          class="tab-btn"
+        >
+          Upload File
+        </button>
+        <button :class="{ active: activeTab === 'url' }" @click="activeTab = 'url'" class="tab-btn">
+          From URL
         </button>
       </div>
+    </template>
+
+    <div v-if="activeTab === 'upload'" class="image-upload-section">
+      <div
+        class="upload-area"
+        @click="triggerFileInput"
+        @dragover.prevent
+        @drop.prevent="handleDrop"
+      >
+        <input
+          type="file"
+          ref="fileInput"
+          accept="image/*"
+          @change="handleFileUpload"
+          style="display: none"
+        />
+        <i class="fa-solid fa-cloud-upload-alt upload-icon"></i>
+        <p>Click to upload or drag and drop an image</p>
+        <p class="upload-hint">Supports: JPG, PNG, GIF, WebP</p>
+      </div>
     </div>
-  </div>
+
+    <div v-if="activeTab === 'url'" class="image-url-section">
+      <label for="imageUrl">Image URL:</label>
+      <input
+        id="imageUrl"
+        type="url"
+        v-model="imageUrl"
+        placeholder="https://example.com/image.jpg"
+        class="url-input"
+        @keyup.enter="loadFromUrl"
+      />
+      <button @click="loadFromUrl" class="load-url-btn" :disabled="!imageUrl">Load Image</button>
+    </div>
+
+    <div v-if="preview" class="image-preview-section">
+      <h4>Preview:</h4>
+      <img :src="preview" alt="Preview" class="image-preview" />
+    </div>
+
+    <div v-if="error" class="image-error">
+      <p>{{ error }}</p>
+    </div>
+
+    <template #footer>
+      <button @click="closeDialog" class="btn-secondary">Cancel</button>
+      <button @click="confirmSelection" :disabled="!preview" class="btn-primary">Add Image</button>
+    </template>
+  </BaseDialog>
 </template>
 
 <script lang="ts">
 import { ref, watch } from "vue";
+import BaseDialog from "./BaseDialog.vue";
 
 export default {
   name: "ImageDialog",
+  components: {
+    BaseDialog,
+  },
   props: {
     show: {
       type: Boolean,
@@ -113,10 +102,6 @@ export default {
       imageUrl.value = "";
       preview.value = "";
       error.value = "";
-    };
-
-    const handleOverlayClick = () => {
-      closeDialog();
     };
 
     const closeDialog = () => {
@@ -207,7 +192,6 @@ export default {
       preview,
       error,
       fileInput,
-      handleOverlayClick,
       closeDialog,
       triggerFileInput,
       handleFileUpload,
@@ -238,69 +222,5 @@ export default {
     margin: 8px 0;
     color: #666;
   }
-}
-
-/* Image Dialog Styles */
-.image-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-}
-
-.image-dialog {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.image-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-
-  h3 {
-    margin: 0;
-    color: #333;
-    font-size: 18px;
-    font-weight: 600;
-  }
-}
-
-.image-dialog-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.image-dialog-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.image-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
 }
 </style>

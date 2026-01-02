@@ -2492,6 +2492,23 @@ export default {
         }, 100);
       });
 
+      // Listen for PDF from Organizer
+      window.addEventListener("loadPdfFromOrganizer", async (event) => {
+        const pdfData = event.detail?.pdfData;
+        if (pdfData) {
+          try {
+            // Convert ArrayBuffer to File
+            const blob = new Blob([pdfData], { type: "application/pdf" });
+            const file = new File([blob], "from_organizer.pdf", { type: "application/pdf" });
+            processFile(file);
+            showToast("PDF from Organizer loaded successfully!", "success");
+          } catch (error) {
+            console.error("Error loading PDF from Organizer:", error);
+            showToast("Error loading PDF from Organizer", "error");
+          }
+        }
+      });
+
       const bodyPdf = document.querySelector(".body-pdf-view");
       if (bodyPdf) {
         let scrollTimeout = null;

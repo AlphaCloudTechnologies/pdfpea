@@ -194,10 +194,23 @@
                     Experience PDF editing with an intuitive interface designed for both beginners and experts.
                 </p>
             </div>
-
+            <div class="flex justify-center mb-8 border-b border-gray-200">
+                <button id="edit-tab" onclick="switchEditorTab('edit')"
+                        class="px-6 py-3 text-lg font-medium border-b-2 border-blue-600 text-blue-600">
+                    Edit PDF
+                </button>
+                <button id="organize-tab" onclick="switchEditorTab('organize')"
+                        class="px-6 py-3 text-lg font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                    Organize PDF
+                </button>
+            </div>
             <!-- Vue PDF Editor App -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
                 <div id="app" style="min-height: 100%;"></div>
+            </div>
+            <!-- Vue PDF Organize App -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div id="organize" style="min-height: 100%; display: none;"></div>
             </div>
         </div>
     </section>
@@ -677,6 +690,27 @@
                 document.getElementById('terms-content').classList.remove('hidden');
                 document.getElementById('terms-tab').classList.remove('text-gray-500', 'border-transparent');
                 document.getElementById('terms-tab').classList.add('text-blue-600', 'border-blue-600', 'bg-blue-50');
+            }
+        }
+
+        // Editor tab switching function
+        function switchEditorTab(tabName) {
+            const appContainer = document.getElementById('app');
+            const organizeContainer = document.getElementById('organize');
+            if (tabName === 'edit') {
+                appContainer.style.display = 'block';
+                organizeContainer.style.display = 'none';
+                document.getElementById('edit-tab').classList.add('border-blue-600', 'text-blue-600');
+                document.getElementById('edit-tab').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('organize-tab').classList.remove('border-blue-600', 'text-blue-600');
+                document.getElementById('organize-tab').classList.add('border-transparent', 'text-gray-500');
+            } else if (tabName === 'organize') {
+                appContainer.style.display = 'none';
+                organizeContainer.style.display = 'block';
+                document.getElementById('organize-tab').classList.add('border-blue-600', 'text-blue-600');
+                document.getElementById('organize-tab').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('edit-tab').classList.remove('border-blue-600', 'text-blue-600');
+                document.getElementById('edit-tab').classList.add('border-transparent', 'text-gray-500');
             }
         }
     </script>

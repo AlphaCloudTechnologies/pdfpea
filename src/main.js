@@ -9,6 +9,9 @@ console.log("Vue imported successfully");
 import App from "./App.vue";
 console.log("App component imported successfully");
 
+import Organize from "./views/Organize.vue";
+console.log("Organizer component imported successfully");
+
 // Import external dependencies
 import * as pdfLib from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
@@ -34,6 +37,12 @@ try {
   console.log("Vue app created successfully:", app);
   const mountedApp = app.mount("#app");
   console.log("Vue app mounted successfully:", mountedApp);
+
+  // Organizer
+  const organize = createApp(Organize);
+  console.log("Organizer created successfully:", organize);
+  const mountedOrganize = organize.mount("#organize");
+  console.log("Organizer mounted successfully:", mountedOrganize);
 } catch (error) {
   console.error("Error creating or mounting Vue app:", error);
 }
