@@ -29,7 +29,7 @@ const DEFAULT_PDFJS_DOCUMENT_OPTIONS = {
 class PDFEditor {
   container = null;
   pdfPages = [];
-
+  totalPages = 0;
   constructor(container) {
     this.container = container;
   }
@@ -45,6 +45,7 @@ class PDFEditor {
         }).promise;
         const promises = [];
 
+        this.totalPages = pdfDoc.numPages;
         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
           const promise = await pdfDoc.getPage(pageNum).then(async () => {
             const pdfURL = fileName;
@@ -92,6 +93,7 @@ class PDFPage {
   constructor(container) {
     this.container = container;
     this.container.classList.add("pdf-page");
+    this.container.style.position = "relative";
 
     this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("id", "body-pdf-canvas");
@@ -104,7 +106,7 @@ class PDFPage {
 
   setupEventListeners() {
     // Basic click handler for selection - drawing handlers will be added by App.vue
-    this.canvas.addEventListener("click", (event) => {
+    this.container.addEventListener("click", (event) => {
       event.stopPropagation();
       this.setSelected();
     });
@@ -150,11 +152,33 @@ class PDFPage {
 
       const formFields = await page.getAnnotations();
 
-      await page.render({
+      const renderTask = page.render({
         annotationMode: pdfjsLib.AnnotationMode.DISABLE,
         canvasContext: this.context,
         viewport: page.getViewport({ scale: DEFAULT_VALUES.SCALE }),
       });
+
+      await renderTask.promise;
+
+      // Create Text Layer
+      const textLayerDiv = document.createElement("div");
+      textLayerDiv.className = "textLayer";
+      textLayerDiv.style.width = `${displayWidth}px`;
+      textLayerDiv.style.height = `${displayHeight}px`;
+      // Set CSS variables for pdf.js text layer
+      textLayerDiv.style.setProperty("--total-scale-factor", "1");
+      textLayerDiv.style.setProperty("--min-font-size", "1");
+      this.container.appendChild(textLayerDiv);
+
+      // Use the same scale as display to match canvas display size
+      const textContent = await page.getTextContent();
+      const textLayerViewport = page.getViewport({ scale: 1 });
+      const textLayer = new pdfjsLib.TextLayer({
+        textContentSource: textContent,
+        container: textLayerDiv,
+        viewport: textLayerViewport,
+      });
+      await textLayer.render();
 
       this.processFormFields(formFields, viewport);
     } catch (error) {
@@ -318,6 +342,7 @@ class PDFPage {
               0,
               "solid",
               settings.opacity || 0.5,
+              "highlight",
             ),
             this.container,
           );
@@ -332,6 +357,9 @@ class PDFPage {
               "#FFFFFF",
               "",
               0,
+              undefined,
+              undefined,
+              "white-out",
             ),
             this.container,
           );
@@ -352,6 +380,7 @@ class PDFPage {
               settings.borderWidth || 2,
               "solid",
               settings.opacity || 1.0,
+              settings.subType,
             ),
             this.container,
           );
@@ -478,6 +507,27 @@ class PDFPage {
           this.container,
         );
 
+      default:
+        return null;
+    }
+  }
+
+  createComponentFromOperation(operation) {
+    switch (operation.type) {
+      case COMPONENT_TYPES.IMAGE:
+        return new ImageOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.RECTANGLE:
+        return new RectangleOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.CIRCLE:
+        return new CircleOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.TEXT:
+        return new TextOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.TEXT_FIELD:
+        return new TextFieldOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.CHECKBOX:
+        return new CheckboxOperationComponent(operation, this.container);
+      case COMPONENT_TYPES.LINK:
+        return new LinkOperationComponent(operation, this.container);
       default:
         return null;
     }

@@ -116,7 +116,16 @@
               <option value="3.0">300%</option>
             </select>
           </div>
-
+          <!-- Pagination -->
+          <div class="option-element">
+            <PaginationBar
+              :currentPage="currentPage"
+              :totalPages="totalPages"
+              @prev-page="goToPrevPage"
+              @next-page="goToNextPage"
+              @go-to-page="goToPage"
+            />
+          </div>
           <!-- Freehand tool options -->
           <template v-if="selectedTool === 'freehand'">
             <div class="option-element">
@@ -595,6 +604,97 @@
     <!-- Link Dialog Component -->
     <LinkDialog :show="showLinkDialog" @close="closeLinkDialog" @confirm="handleLinkConfirm" />
 
+    <!-- Search Box -->
+    <div v-if="showSearchBox" class="search-box">
+      <div class="search-box-header">
+        <i class="fa-solid fa-search" style="color: #6c757d; margin-right: 8px"></i>
+        <span style="font-weight: 500; color: #495057">Find Text</span>
+        <button @click="closeSearchBox" class="search-close-btn" title="Close">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="search-box-content">
+        <input
+          ref="searchInput"
+          v-model="searchQuery"
+          type="text"
+          placeholder="Enter text to search..."
+          class="search-input"
+          @input="handleSearch"
+          @keydown.enter="findNext"
+          @keydown.esc="closeSearchBox"
+        />
+        <div class="search-results" v-if="searchQuery">
+          <span class="search-results-text">
+            {{
+              searchMatches.length > 0
+                ? `${currentMatchIndex + 1} of ${searchMatches.length}`
+                : "No results"
+            }}
+          </span>
+          <button
+            @click="findPrevious"
+            :disabled="searchMatches.length === 0"
+            class="search-nav-btn"
+            title="Previous (Shift+Enter)"
+          >
+            <i class="fa-solid fa-chevron-up"></i>
+          </button>
+          <button
+            @click="findNext"
+            :disabled="searchMatches.length === 0"
+            class="search-nav-btn"
+            title="Next (Enter)"
+          >
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text Selection Toolbar -->
+    <div
+      v-if="showTextSelectionToolbar"
+      class="text-selection-toolbar"
+      :style="{
+        top: `${textSelectionToolbarPosition.top}px`,
+        left: `${textSelectionToolbarPosition.left}px`,
+      }"
+      @mousedown.stop
+    >
+      <button @click="copySelectedText" class="toolbar-btn" title="Copy">
+        <i class="fa-regular fa-copy"></i> Copy
+      </button>
+      <div class="toolbar-divider"></div>
+      <button @click="applyTextSelectionAction('highlight')" class="toolbar-btn" title="Highlight">
+        <i class="fa-solid fa-highlighter" style="color: #facc15"></i> Highlight
+      </button>
+      <div class="toolbar-divider"></div>
+      <button @click="applyTextSelectionAction('underline')" class="toolbar-btn" title="Underline">
+        <i class="fa-solid fa-underline"></i>
+      </button>
+      <div class="toolbar-divider"></div>
+      <button
+        @click="applyTextSelectionAction('strikethrough')"
+        class="toolbar-btn"
+        title="Strikethrough"
+      >
+        <i class="fa-solid fa-strikethrough"></i>
+      </button>
+      <div class="toolbar-divider"></div>
+      <button @click="applyTextSelectionAction('link')" class="toolbar-btn" title="Link">
+        <i class="fa-solid fa-link"></i>
+      </button>
+      <div class="toolbar-divider"></div>
+      <button
+        @click="applyTextSelectionAction('remove')"
+        class="toolbar-btn"
+        title="Remove Formatting"
+      >
+        <i class="fa-solid fa-eraser"></i>
+      </button>
+    </div>
+
     <div class="pdf-body">
       <!-- Floating Toolbar -->
       <div class="floating-toolbar">
@@ -602,13 +702,28 @@
         <div class="tools-section">
           <div
             class="body-tool"
+            :class="{ active: selectedTool === 'hand' }"
+            @click="selectTool('hand')"
+            title="Hand Tool - Click and drag to select and move components"
+          >
+            <i class="fa-solid fa-hand"></i>
+          </div>
+          <div
+            class="body-tool"
             :class="{ active: selectedTool === 'select' }"
             @click="selectTool('select')"
-            title="Select Tool - Click and drag to select and move components"
+            title="Select Tool - Click and drag to select text"
           >
             <i class="fa-solid fa-mouse-pointer"></i>
           </div>
-
+          <div
+            class="body-tool"
+            :class="{ active: showSearchBox }"
+            @click="toggleSearchBox"
+            title="Search Tool - Find text in the document"
+          >
+            <i class="fa-solid fa-search"></i>
+          </div>
           <div
             class="body-tool"
             :class="{ active: selectedTool === 'text' }"
@@ -725,7 +840,9 @@
         id="body-pdf-view"
         class="body-pdf-view"
         :class="{
-          'drawing-mode': selectedTool !== 'select',
+          'drawing-mode': selectedTool !== 'select' && selectedTool !== 'hand',
+          'select-mode': selectedTool === 'select',
+          'hand-mode': selectedTool === 'hand',
           'freehand-cursor': selectedTool === 'freehand',
         }"
       >
@@ -797,13 +914,16 @@ import { ref, onMounted, nextTick, watch } from "vue";
 import { PDFEditor } from "./js/PDFEditor.js";
 import ImageDialog from "./components/ImageDialog.vue";
 import LinkDialog from "./components/LinkDialog.vue";
+import PaginationBar from "./components/PaginationBar.vue";
 import { freehandDrawing } from "./utils/FreehandDrawing.js";
+import { textSelection } from "./utils/TextSelection.js";
 
 export default {
   name: "App",
   components: {
     ImageDialog,
     LinkDialog,
+    PaginationBar,
   },
   setup() {
     console.log("Vue setup() function called - this means Vue is working");
@@ -813,10 +933,14 @@ export default {
     const configFile = ref(null);
     let pdfEditor = null;
     const selectedOperation = ref(null);
+    const selectedComponent = ref(null);
+    const clipboard = ref(null);
     const counter = ref(0);
     const zoomLevel = ref(1.5);
     const selectedTool = ref("select");
-
+    const currentPage = ref(0);
+    const totalPages = ref(0);
+    const lastMousePosition = ref({ x: 0, y: 0 });
     // Icon cache for base64 encoded SVGs
     const iconCache = ref({});
 
@@ -952,6 +1076,24 @@ export default {
 
     // PDF loaded state
     const isLoaded = ref(false);
+
+    // Search state
+    const showSearchBox = ref(false);
+    const searchQuery = ref("");
+    const searchMatches = ref([]);
+    const currentMatchIndex = ref(0);
+    const searchInput = ref(null);
+
+    // Text Selection Toolbar state
+    const showTextSelectionToolbar = ref(false);
+    const textSelectionToolbarPosition = ref({ top: 0, left: 0 });
+    const currentSelectionRange = ref(null);
+
+    // Drag-to-select text state
+    const isSelectingText = ref(false);
+    const selectStartPos = ref({ x: 0, y: 0 });
+    const selectCurrentPos = ref({ x: 0, y: 0 });
+    const selectRectElement = ref(null);
 
     // Image dialog functions - simplified
     const openImageDialog = (page, id, x, y, width, height) => {
@@ -1241,11 +1383,14 @@ export default {
               return; // Don't handle drawing events for moveable controls
             }
 
-            if (selectedTool.value === "select") {
+            if (selectedTool.value === "hand" || selectedTool.value === "select") {
               // Default selection behavior - only handle on canvas
               if (element === canvas) {
                 event.stopPropagation();
                 page.setSelected();
+
+                // Drag To Select text - allow for both hand and select tools
+                startTextSelection(event);
               }
               return;
             }
@@ -1443,6 +1588,12 @@ export default {
           });
 
           element.addEventListener("mousemove", (event) => {
+            // Handle drag-to-select text
+            if (isSelectingText.value) {
+              updateTextSelection(event);
+              return;
+            }
+
             if (!isDrawing.value || selectedTool.value === "select") return;
 
             event.preventDefault();
@@ -1602,7 +1753,18 @@ export default {
           });
 
           element.addEventListener("mouseup", (event) => {
-            if (!isDrawing.value || selectedTool.value === "select") return;
+            // Handle drag-to-select text
+            if (isSelectingText.value) {
+              endTextSelection(event);
+              return;
+            }
+
+            if (
+              !isDrawing.value ||
+              selectedTool.value === "select" ||
+              selectedTool.value === "hand"
+            )
+              return;
 
             event.preventDefault();
             event.stopPropagation();
@@ -1811,6 +1973,10 @@ export default {
           clearPdfPages();
           isLoaded.value = true;
           await pdfEditor.renderPDF("", e.target.result).then(() => {
+            // Update pagination
+            totalPages.value = pdfEditor.totalPages;
+            currentPage.value = 1;
+
             pdfEditor.applyZoom(zoomLevel.value);
             // Setup drawing listeners after PDF is rendered
             setupCanvasDrawingListeners();
@@ -2147,10 +2313,168 @@ export default {
 
     const uploadPropertyPanel = (e) => {
       selectedOperation.value = e.detail.target.getOperation();
+      selectedComponent.value = e.detail.target;
     };
 
     const clearPropertyPanel = () => {
       selectedOperation.value = null;
+      selectedComponent.value = null;
+    };
+
+    // Search functions
+    const toggleSearchBox = () => {
+      showSearchBox.value = !showSearchBox.value;
+      if (showSearchBox.value) {
+        nextTick(() => {
+          searchInput.value?.focus();
+        });
+      } else {
+        clearSearch();
+      }
+    };
+
+    const closeSearchBox = () => {
+      showSearchBox.value = false;
+      clearSearch();
+    };
+
+    const clearSearch = () => {
+      searchQuery.value = "";
+      searchMatches.value = [];
+      currentMatchIndex.value = 0;
+      clearHighlights();
+    };
+
+    const escapeHtml = (text) => {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    const handleSearch = () => {
+      clearHighlights();
+      searchMatches.value = [];
+      currentMatchIndex.value = 0;
+
+      if (!searchQuery.value.trim()) {
+        return;
+      }
+
+      // Search in text layers
+      const textLayers = document.querySelectorAll(".textLayer");
+      textLayers.forEach((textLayer, pageIndex) => {
+        const spans = textLayer.querySelectorAll("span");
+        spans.forEach((span) => {
+          const text = span.textContent || "";
+          const searchText = searchQuery.value.toLowerCase();
+          const lowerText = text.toLowerCase();
+
+          let index = lowerText.indexOf(searchText);
+          while (index !== -1) {
+            searchMatches.value.push({
+              element: span,
+              pageIndex,
+              startIndex: index,
+              length: searchQuery.value.length,
+              text: text.substring(index, index + searchQuery.value.length),
+            });
+            index = lowerText.indexOf(searchText, index + 1);
+          }
+        });
+      });
+
+      if (searchMatches.value.length > 0) {
+        highlightMatch(0);
+      }
+    };
+
+    const highlightMatch = (index) => {
+      if (index < 0 || index >= searchMatches.value.length) return;
+
+      clearHighlights();
+      currentMatchIndex.value = index;
+
+      // Group matches by element to handle multiple matches in same span
+      const matchesByElement = new Map();
+      searchMatches.value.forEach((match, i) => {
+        if (!matchesByElement.has(match.element)) {
+          matchesByElement.set(match.element, []);
+        }
+        matchesByElement.get(match.element).push({ ...match, matchIndex: i });
+      });
+
+      // Apply highlights to each element
+      matchesByElement.forEach((matches, element) => {
+        const text = element.textContent;
+        let html = "";
+        let lastIndex = 0;
+
+        // Sort matches by start index
+        matches.sort((a, b) => a.startIndex - b.startIndex);
+
+        matches.forEach((match) => {
+          // Add text before the match
+          html += escapeHtml(text.substring(lastIndex, match.startIndex));
+
+          // Add highlighted match
+          const matched = text.substring(match.startIndex, match.startIndex + match.length);
+          const isCurrent = match.matchIndex === index;
+          const bgColor = isCurrent ? "#ff9800" : "#ffeb3b";
+          const className = isCurrent ? "search-highlight-current" : "search-highlight";
+
+          html += `<mark class="${className}" style="background-color: ${bgColor}; color: #000; padding: 0; border-radius: 1px;">${escapeHtml(matched)}</mark>`;
+
+          lastIndex = match.startIndex + match.length;
+        });
+
+        // Add remaining text
+        html += escapeHtml(text.substring(lastIndex));
+
+        element.innerHTML = html;
+      });
+
+      // Scroll to current match
+      const currentMatch = searchMatches.value[index];
+      const highlightedElement = currentMatch.element.querySelector(".search-highlight-current");
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({ block: "center" });
+      }
+    };
+
+    const clearHighlights = () => {
+      // Remove all highlight marks from all text layers
+      const textLayers = document.querySelectorAll(".textLayer");
+      textLayers.forEach((textLayer) => {
+        const spans = textLayer.querySelectorAll("span");
+        spans.forEach((span) => {
+          // Check if span has highlight marks
+          const marks = span.querySelectorAll(
+            "mark.search-highlight, mark.search-highlight-current",
+          );
+          if (marks.length > 0) {
+            // Restore original text content without HTML
+            const text = span.textContent;
+            span.textContent = text;
+          }
+        });
+      });
+    };
+
+    const findNext = () => {
+      if (searchMatches.value.length === 0) return;
+      const nextIndex = (currentMatchIndex.value + 1) % searchMatches.value.length;
+      highlightMatch(nextIndex);
+    };
+
+    const findPrevious = () => {
+      if (searchMatches.value.length === 0) return;
+      const prevIndex =
+        (currentMatchIndex.value - 1 + searchMatches.value.length) % searchMatches.value.length;
+      highlightMatch(prevIndex);
     };
 
     const updateToolbarPosition = () => {
@@ -2375,11 +2699,199 @@ export default {
       }
     };
 
+    const handleKeyDown = (e) => {
+      // Ignore if input/textarea is focused
+      if (
+        ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Copy: Ctrl+C or Cmd+C
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        if (selectedOperation.value) {
+          clipboard.value = JSON.parse(JSON.stringify(selectedOperation.value));
+          showToast("Component copied", "info");
+        }
+      }
+
+      // Paste: Ctrl+V or Cmd+V
+      if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+        if (clipboard.value) {
+          const newOp = JSON.parse(JSON.stringify(clipboard.value));
+
+          // Generate new ID
+          const timestamp = Date.now();
+          const random = Math.floor(Math.random() * 1000);
+          newOp.id = `copy-${timestamp}-${random}`;
+
+          if (newOp.identifier) newOp.identifier = newOp.id;
+          if (newOp.type === "watermark" && newOp.groupId) {
+            newOp.groupId = `wm-group-${timestamp}-${random}`;
+          }
+
+          // Determine target page and position based on mouse cursor
+          let targetPage = null;
+          let pasteX = newOp.x + 20;
+          let pasteY = newOp.y + 20;
+          let mouseOverPage = false;
+
+          if (pdfEditor && pdfEditor.pdfPages) {
+            for (const page of pdfEditor.pdfPages) {
+              const rect = page.container.getBoundingClientRect();
+              if (
+                lastMousePosition.value.x >= rect.left &&
+                lastMousePosition.value.x <= rect.right &&
+                lastMousePosition.value.y >= rect.top &&
+                lastMousePosition.value.y <= rect.bottom
+              ) {
+                targetPage = page;
+                mouseOverPage = true;
+                // Calculate position relative to page, accounting for zoom
+                // Center the component on the cursor if dimensions are available
+                const width = newOp.width || 0;
+                const height = newOp.height || 0;
+                pasteX = (lastMousePosition.value.x - rect.left) / zoomLevel.value - width / 2;
+                pasteY = (lastMousePosition.value.y - rect.top) / zoomLevel.value - height / 2;
+                break;
+              }
+            }
+          }
+
+          if (!mouseOverPage) {
+            // Fallback to original logic (offset from original position)
+            if (selectedComponent.value && selectedComponent.value.canvasContainer) {
+              targetPage = pdfEditor.pdfPages.find(
+                (p) => p.container === selectedComponent.value.canvasContainer,
+              );
+            } else if (currentPage.value > 0 && pdfEditor && pdfEditor.pdfPages) {
+              targetPage = pdfEditor.pdfPages[currentPage.value - 1];
+            }
+          }
+
+          if (targetPage) {
+            newOp.x = pasteX;
+            newOp.y = pasteY;
+            const component = targetPage.createComponentFromOperation(newOp);
+            if (component) {
+              component.setSelected(true);
+            }
+          }
+        }
+      }
+    };
+
+    // Text Selection Toolbar functions
+    const handleDocumentMouseUp = (e) => {
+      if (selectedTool.value !== "select" && selectedTool.value !== "hand") {
+        return;
+      }
+
+      const result = textSelection.handleSelection(e);
+      if (result) {
+        showTextSelectionToolbar.value = result.show;
+        textSelectionToolbarPosition.value = result.position;
+        currentSelectionRange.value = result.range;
+      }
+    };
+
+    const applyTextSelectionAction = (actionType, options = {}) => {
+      const shouldHideToolbar = textSelection.applyAction(actionType, pdfEditor, zoomLevel.value, {
+        openLinkDialog,
+        showToast,
+      });
+
+      if (shouldHideToolbar) {
+        showTextSelectionToolbar.value = false;
+      }
+    };
+
+    const copySelectedText = () => {
+      if (textSelection.copyText()) {
+        showTextSelectionToolbar.value = false;
+      }
+    };
+
+    // Drag-to-select text functions
+    const startTextSelection = (e) => {
+      if (selectedTool.value !== "select" && selectedTool.value !== "hand") return;
+      if (e.target.closest(".component")) return;
+      if (e.target.closest(".text-selection-toolbar")) return;
+
+      const pageElement = e.target.closest(".pdf-page");
+      if (!pageElement) return;
+
+      isSelectingText.value = true;
+      selectStartPos.value = { x: e.clientX, y: e.clientY };
+      selectCurrentPos.value = { x: e.clientX, y: e.clientY };
+
+      // Create selection rectangle element
+      if (!selectRectElement.value) {
+        selectRectElement.value = document.createElement("div");
+        selectRectElement.value.className = "text-selection-rectangle";
+        document.body.appendChild(selectRectElement.value);
+      }
+
+      updateSelectionRectangle();
+      e.preventDefault();
+    };
+
+    const updateTextSelection = (e) => {
+      if (!isSelectingText.value) return;
+
+      selectCurrentPos.value = { x: e.clientX, y: e.clientY };
+      updateSelectionRectangle();
+    };
+
+    const updateSelectionRectangle = () => {
+      if (!selectRectElement.value) return;
+
+      const left = Math.min(selectStartPos.value.x, selectCurrentPos.value.x);
+      const top = Math.min(selectStartPos.value.y, selectCurrentPos.value.y);
+      const width = Math.abs(selectCurrentPos.value.x - selectStartPos.value.x);
+      const height = Math.abs(selectCurrentPos.value.y - selectStartPos.value.y);
+
+      selectRectElement.value.style.left = `${left}px`;
+      selectRectElement.value.style.top = `${top}px`;
+      selectRectElement.value.style.width = `${width}px`;
+      selectRectElement.value.style.height = `${height}px`;
+      selectRectElement.value.style.display = "block";
+    };
+
+    const endTextSelection = (e) => {
+      if (!isSelectingText.value) return;
+
+      const pageElement = e.target.closest(".pdf-page");
+      if (pageElement) {
+        const selectionRect = {
+          startX: selectStartPos.value.x,
+          startY: selectStartPos.value.y,
+          endX: selectCurrentPos.value.x,
+          endY: selectCurrentPos.value.y,
+        };
+
+        textSelection.selectTextInRectangle(selectionRect, pageElement);
+      }
+
+      // Hide selection rectangle
+      if (selectRectElement.value) {
+        selectRectElement.value.style.display = "none";
+      }
+
+      isSelectingText.value = false;
+    };
+
     onMounted(async () => {
       console.log(`onMounted - starting`);
 
       // Wait for DOM to be updated
       await nextTick();
+
+      // Track mouse position for paste at cursor
+      document.addEventListener("mousemove", (e) => {
+        lastMousePosition.value = { x: e.clientX, y: e.clientY };
+      });
 
       console.log("DOM has been updated, initializing PDFEditor...");
       console.log("Container element (ref):", pdfViewContainer.value);
@@ -2388,7 +2900,6 @@ export default {
         console.log("Creating PDFEditor with container:", pdfViewContainer.value);
         try {
           pdfEditor = new PDFEditor(pdfViewContainer.value);
-
           document.addEventListener("pdfeditor.componentSelected", uploadPropertyPanel);
           document.addEventListener("pdfeditor.componentDragging", uploadPropertyPanel);
           document.addEventListener("pdfeditor.componentResizing", uploadPropertyPanel);
@@ -2476,6 +2987,45 @@ export default {
           updateToolbarPosition();
         }, 100);
       });
+
+      // Listen for PDF from Organizer
+      window.addEventListener("loadPdfFromOrganizer", async (event) => {
+        const pdfData = event.detail?.pdfData;
+        if (pdfData) {
+          try {
+            // Convert ArrayBuffer to File
+            const blob = new Blob([pdfData], { type: "application/pdf" });
+            const file = new File([blob], "from_organizer.pdf", { type: "application/pdf" });
+            processFile(file);
+            showToast("PDF from Organizer loaded successfully!", "success");
+          } catch (error) {
+            console.error("Error loading PDF from Organizer:", error);
+            showToast("Error loading PDF from Organizer", "error");
+          }
+        }
+      });
+
+      const bodyPdf = document.querySelector(".body-pdf-view");
+      if (bodyPdf) {
+        let scrollTimeout = null;
+        bodyPdf.addEventListener("scroll", () => {
+          if (scrollTimeout) clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            const centerY = bodyPdf.scrollTop + bodyPdf.clientHeight / 2;
+            const page = pdfEditor.pdfPages.findIndex((p) => {
+              const el = p.container;
+              if (!el) return false;
+              return el.offsetTop <= centerY && el.offsetTop + el.offsetHeight >= centerY;
+            });
+            if (page !== -1) {
+              currentPage.value = page + 1;
+            }
+          }, 200);
+        });
+      }
+
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("mouseup", handleDocumentMouseUp);
     });
 
     const setupTooltipPositioning = () => {
@@ -2747,6 +3297,29 @@ export default {
       }
     };
 
+    // Pagination state
+    const goToPage = (pageNum) => {
+      if (!pdfEditor || !pdfEditor.totalPages) return;
+      if (pageNum < 1) pageNum = 1;
+      if (pageNum > pdfEditor.totalPages) pageNum = pdfEditor.totalPages;
+      currentPage.value = pageNum;
+      const page = pdfEditor.pdfPages[pageNum - 1];
+      if (page && page.container) {
+        page.container.scrollIntoView();
+        const pdfSelector = document.querySelector(".pdf-editor");
+        if (pdfSelector) {
+          pdfSelector.scrollIntoView();
+        }
+      }
+    };
+
+    const goToPrevPage = () => {
+      goToPage(currentPage.value - 1);
+    };
+    const goToNextPage = () => {
+      goToPage(currentPage.value + 1);
+    };
+
     return {
       pdfViewContainer,
       file,
@@ -2814,6 +3387,25 @@ export default {
       createMeasurementOverlay,
       addMeasurementOverlay,
       scrollToEditor,
+      currentPage,
+      totalPages,
+      goToPrevPage,
+      goToNextPage,
+      goToPage,
+      showSearchBox,
+      searchQuery,
+      searchMatches,
+      currentMatchIndex,
+      searchInput,
+      toggleSearchBox,
+      closeSearchBox,
+      handleSearch,
+      findNext,
+      findPrevious,
+      showTextSelectionToolbar,
+      textSelectionToolbarPosition,
+      copySelectedText,
+      applyTextSelectionAction,
     };
   },
 };
@@ -2946,5 +3538,145 @@ export default {
       }
     }
   }
+}
+
+.textLayer {
+  color-scheme: only light;
+
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 1;
+  pointer-events: none;
+
+  /* Disable pointer events on text spans when in drawing mode to allow drawing on canvas */
+  .body-pdf-view.drawing-mode & :is(span, br) {
+    pointer-events: none;
+  }
+
+  :is(span, br) {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    pointer-events: auto;
+  }
+
+  /* We multiply the font size by --min-font-size, and then scale the text
+   * elements by 1/--min-font-size. This allows us to effectively ignore the
+   * minimum font size enforced by the browser, so that the text layer <span>s
+   * can always match the size of the text in the canvas. */
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+
+  > :not(.markedContent),
+  .markedContent span:not(.markedContent) {
+    z-index: 1;
+
+    --font-height: 0;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+
+    --scale-x: 1;
+    --rotate: 0deg;
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+  }
+
+  .markedContent {
+    display: contents;
+  }
+
+  span[role="img"] {
+    user-select: none;
+    cursor: default;
+  }
+
+  ::selection {
+    background: rgba(0, 100, 255, 0.3);
+  }
+
+  br::selection {
+    background: transparent;
+  }
+
+  .endOfContent {
+    display: block;
+    position: absolute;
+    inset: 100% 0 0;
+    z-index: 0;
+    cursor: default;
+    user-select: none;
+  }
+
+  &.selecting .endOfContent {
+    top: 0;
+  }
+}
+
+/* Search Box Styling */
+.search-box {
+  @apply fixed top-20 right-5 w-80 bg-white rounded-lg shadow-lg z-1000 overflow-hidden border border-[#dee2e6];
+}
+
+.search-box-header {
+  @apply flex items-center py-3 px-4 bg-[#f8f9fa] border-b border-[#dee2e6];
+}
+
+.search-close-btn {
+  @apply ml-auto bg-transparent border-none cursor-pointer py-1 px-2 rounded text-[#6c757d] transition-all duration-200 hover:bg-[#e9ecef] hover:text-[#495057];
+}
+
+.search-box-content {
+  @apply p-4;
+}
+
+.search-input {
+  @apply w-full py-2 px-3 border border-[#ced4da] rounded text-sm outline-none transition-colors duration-200 focus:border-[#80bdff] focus:ring-4 focus:ring-blue-500/25;
+}
+
+.search-results {
+  @apply flex items-center gap-2 mt-3 pt-3 border-t border-[#e9ecef];
+}
+
+.search-results-text {
+  @apply text-[13px] text-[#6c757d] flex-1;
+}
+
+.search-nav-btn {
+  @apply bg-[#f8f9fa] border border-[#dee2e6] rounded py-1.5 px-2.5 cursor-pointer text-[#495057] transition-all duration-200 text-[12px] disabled:opacity-50 disabled:cursor-not-allowed hover:not-disabled:bg-[#e9ecef] hover:not-disabled:border-[#adb5bd];
+}
+
+.search-highlight {
+  @apply rounded-sm py-px px-0;
+}
+
+.search-highlight-current {
+  @apply rounded-sm py-px px-0 font-medium;
+}
+
+/* Text selection toolbar */
+.text-selection-toolbar {
+  @apply absolute z-10000 bg-white rounded-lg shadow-lg p-1.5 flex items-center gap-1 border border-[#e0e0e0] font-sans;
+}
+
+.toolbar-btn {
+  @apply bg-transparent border-none rounded py-1.5 px-2.5 cursor-pointer flex items-center gap-1.5 text-[#333] text-sm transition-colors duration-200 hover:bg-[#f0f0f0];
+}
+
+.toolbar-divider {
+  @apply w-px h-5 bg-[#e0e0e0] mx-1;
+}
+
+/* Text selection rectangle overlay */
+.text-selection-rectangle {
+  @apply fixed border-2 border-[#6ec5ff] bg-none pointer-events-none z-9999 hidden;
 }
 </style>

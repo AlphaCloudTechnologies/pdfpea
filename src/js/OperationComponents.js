@@ -20,6 +20,7 @@ class BasicOperationComponent {
     this.wrapperContainer.style.width = `${this.operation.width}px`;
 
     this.wrapperContainer.operation = operation;
+    this.wrapperContainer.component = this;
 
     this.canvasContainer.appendChild(this.wrapperContainer);
 
@@ -361,6 +362,7 @@ class RectangleOperationComponent extends BasicOperationComponent {
     borderWidth = 2,
     borderStyle = "solid",
     opacity = 1.0,
+    subType = null,
   ) => {
     return {
       type: "rectangle",
@@ -377,6 +379,7 @@ class RectangleOperationComponent extends BasicOperationComponent {
       borderColor: borderColor,
       borderWidth: borderWidth,
       borderStyle: borderStyle,
+      subType: subType,
     };
   };
 }
