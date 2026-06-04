@@ -61,6 +61,8 @@ export const COMPONENT_TYPES = {
   TEXT_FIELD: "textfield",
   CHECKBOX: "checkbox",
   LINK: "link",
+  NOTE: "note",
+  WATERMARK: "watermark",
 };
 
 // Events
@@ -84,4 +86,31 @@ export const IMAGE_PATHS = {
 export const IMAGE_SIGNATURES = {
   JPG: [0xff, 0xd8],
   PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+};
+
+// Watermark constants
+export const WATERMARK = {
+  DEFAULT_SIZE: 126,
+  DEFAULT_OPACITY: 50,
+  DEFAULT_COLOR: "#1E1E1E",
+  DEFAULT_ORIENTATION: "horizontal",
+  DEFAULT_POSITION: "center",
+
+  ORIENTATIONS: {
+    HORIZONTAL: "horizontal",
+    DIAGONAL: "diagonal",
+    VERTICAL: "vertical",
+  },
+
+  POSITIONS: {
+    TOP_LEFT: "top-left",
+    TOP_CENTER: "top-center",
+    TOP_RIGHT: "top-right",
+    MIDDLE_LEFT: "middle-left",
+    CENTER: "center",
+    MIDDLE_RIGHT: "middle-right",
+    BOTTOM_LEFT: "bottom-left",
+    BOTTOM_CENTER: "bottom-center",
+    BOTTOM_RIGHT: "bottom-right",
+  },
 };

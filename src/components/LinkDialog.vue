@@ -1,72 +1,65 @@
 <template>
-  <div v-if="show" class="link-dialog-overlay" @click="handleOverlayClick">
-    <div class="link-dialog" @click.stop>
-      <div class="link-dialog-header">
-        <h3>Add Link</h3>
-        <button @click="closeDialog" class="dialog-close-btn">&times;</button>
+  <BaseDialog :show="show" title="Add Link" @close="closeDialog">
+    <template #tabs>
+      <div class="flex gap-1 mb-5 border-b border-[#e0e0e0]">
+        <button :class="{ active: activeTab === 'url' }" @click="activeTab = 'url'" class="tab-btn">
+          External URL
+        </button>
+        <button
+          :class="{ active: activeTab === 'page' }"
+          @click="activeTab = 'page'"
+          class="tab-btn"
+        >
+          Page Link
+        </button>
       </div>
+    </template>
 
-      <div class="link-dialog-content">
-        <div class="link-dialog-tabs">
-          <button
-            :class="{ active: activeTab === 'url' }"
-            @click="activeTab = 'url'"
-            class="tab-btn"
-          >
-            External URL
-          </button>
-          <button
-            :class="{ active: activeTab === 'page' }"
-            @click="activeTab = 'page'"
-            class="tab-btn"
-          >
-            Page Link
-          </button>
-        </div>
-
-        <div v-if="activeTab === 'url'" class="link-url-section">
-          <label for="linkUrl">URL:</label>
-          <input
-            id="linkUrl"
-            type="url"
-            v-model="linkUrl"
-            placeholder="https://example.com"
-            class="url-input"
-            @keyup.enter="confirmSelection"
-          />
-        </div>
-
-        <div v-if="activeTab === 'page'" class="link-page-section">
-          <label for="pageNumber">Page Number:</label>
-          <input
-            id="pageNumber"
-            type="number"
-            v-model="pageNumber"
-            placeholder="1"
-            min="1"
-            class="page-input"
-            @keyup.enter="confirmSelection"
-          />
-        </div>
-
-        <div v-if="error" class="link-error">
-          <p>{{ error }}</p>
-        </div>
-      </div>
-
-      <div class="link-dialog-footer">
-        <button @click="closeDialog" class="btn-secondary">Cancel</button>
-        <button @click="confirmSelection" :disabled="!isValid" class="btn-primary">Add Link</button>
-      </div>
+    <div v-if="activeTab === 'url'" class="link-url-section">
+      <label for="linkUrl">URL:</label>
+      <input
+        id="linkUrl"
+        type="url"
+        v-model="linkUrl"
+        placeholder="https://example.com"
+        class="url-input"
+        @keyup.enter="confirmSelection"
+      />
     </div>
-  </div>
+
+    <div v-if="activeTab === 'page'" class="link-page-section">
+      <label for="pageNumber">Page Number:</label>
+      <input
+        id="pageNumber"
+        type="number"
+        v-model="pageNumber"
+        placeholder="1"
+        min="1"
+        class="page-input"
+        @keyup.enter="confirmSelection"
+      />
+    </div>
+
+    <div v-if="error" class="link-error">
+      <p>{{ error }}</p>
+    </div>
+
+    <template #footer>
+      <button @click="closeDialog" class="btn-secondary">Cancel</button>
+      <button @click="confirmSelection" :disabled="!isValid" class="btn-primary">Add Link</button>
+    </template>
+  </BaseDialog>
 </template>
 
 <script lang="ts">
 import { ref, watch, computed } from "vue";
+import BaseDialog from "./BaseDialog.vue";
 
 export default {
   name: "LinkDialog",
+  components: {
+    BaseDialog,
+  },
   props: {
     show: {
       type: Boolean,
@@ -105,10 +98,6 @@ export default {
         return !isNaN(num) && num > 0;
       }
     });
-
-    const handleOverlayClick = () => {
-      closeDialog();
-    };
 
     const closeDialog = () => {
       emit("close");
@@ -156,7 +145,6 @@ export default {
       pageNumber,
       error,
       isValid,
-      handleOverlayClick,
       closeDialog,
       confirmSelection,
     };
