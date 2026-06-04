@@ -76,6 +76,28 @@ class PDFGenerator {
       }
 
       const [cpage] = await pdfDoc.copyPages(srcDoc, [pageNumber - 1]);
+      // Remove existing Text annotations (Notes) to avoid duplicates when re-adding them from editor state
+      const annotsRef = cpage.node.get(PDFLib.PDFName.of("Annots"));
+      if (annotsRef) {
+        const annots = cpage.node.context.lookup(annotsRef);
+        if (annots instanceof PDFLib.PDFArray) {
+          const newAnnots = [];
+          for (let i = 0; i < annots.size(); i++) {
+            const annotRef = annots.get(i);
+            const annot = cpage.node.context.lookup(annotRef);
+            let isNote = false;
+            if (annot instanceof PDFLib.PDFDict) {
+              const subtype = annot.lookup(PDFLib.PDFName.of("Subtype"));
+              if (subtype instanceof PDFLib.PDFName && subtype.asString() === "/Text") {
+                isNote = true;
+              }
+            }
+            if (!isNote) newAnnots.push(annotRef);
+          }
+          cpage.node.set(PDFLib.PDFName.of("Annots"), cpage.node.context.obj(newAnnots));
+        }
+      }
+
       pdfDoc.addPage(cpage);
     }
 
@@ -90,6 +112,8 @@ class PDFGenerator {
       for (const op of createOperations) {
         if (op.type === "text") {
           await this.drawTextOnPage(pdfDoc, pdfPage, op);
+        } else if (op.type === "watermark") {
+          await this.drawWatermarkOnPage(pdfDoc, pdfPage, op);
         } else if (op.type === "rectangle") {
           await this.drawRectangleOnPage(pdfDoc, pdfPage, op);
         } else if (op.type === "circle") {
@@ -102,6 +126,8 @@ class PDFGenerator {
           await this.drawCheckboxOnPage(pdfDoc, pdfPage, op);
         } else if (op.type === "link") {
           await this.drawLinkOnPage(pdfDoc, pdfPage, op);
+        } else if (op.type === "note") {
+          await this.drawNoteOnPage(pdfDoc, pdfPage, op);
         }
       }
 
@@ -192,6 +218,179 @@ class PDFGenerator {
       wordBreaks: wordBreaks,
       maxWidth: width,
     });
+  }
+
+  static async drawWatermarkOnPage(pdfDoc, pdfPage, operation) {
+    const operationPageHeight = pdfPage.getHeight();
+    const { x: pageX, y: pageY } = pdfPage.getCropBox() || pdfPage.getMediaBox();
+
+    const text = operation.text.replaceAll("\n\n", "\n \n");
+    const x = operation.x;
+    const y = operation.y;
+    let fontFamily = operation.fontFamily;
+    const fontSize = parseInt(operation.fontSize);
+    const fontColor = PDFGenerator.hexToRgb(operation.color);
+    const fontLineHeight = operation.fontSize * (operation.lineHeight || 1.2);
+    const width = operation.width;
+    const height = operation.height || fontSize;
+    const opacity = parseFloat(operation.opacity, 10);
+    const bold = operation.bold || false;
+    const italic = operation.italic || false;
+    const underline = operation.underline || false;
+    const rotation = parseFloat(operation.rotation) || 0;
+    const alignment = operation.alignment || "center";
+
+    // Adjust font family based on bold/italic flags
+    if (fontFamily === "Helvetica") {
+      if (bold && italic) {
+        fontFamily = "Helvetica-BoldOblique";
+      } else if (bold) {
+        fontFamily = "Helvetica-Bold";
+      } else if (italic) {
+        fontFamily = "Helvetica-Oblique";
+      }
+    } else if (fontFamily === "Times-Roman" || fontFamily === "TimesRoman") {
+      if (bold && italic) {
+        fontFamily = "Times-BoldItalic";
+      } else if (bold) {
+        fontFamily = "Times-Bold";
+      } else if (italic) {
+        fontFamily = "Times-Italic";
+      } else {
+        fontFamily = "Times-Roman";
+      }
+    } else if (fontFamily === "Courier") {
+      if (bold && italic) {
+        fontFamily = "Courier-BoldOblique";
+      } else if (bold) {
+        fontFamily = "Courier-Bold";
+      } else if (italic) {
+        fontFamily = "Courier-Oblique";
+      }
+    }
+
+    let embedFont;
+
+    if (fontFamily === "Helvetica") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    } else if (fontFamily === "Helvetica-Bold") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    } else if (fontFamily === "Helvetica-Oblique") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
+    } else if (fontFamily === "Helvetica-BoldOblique") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBoldOblique);
+    } else if (fontFamily === "Times-Roman") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+    } else if (fontFamily === "Times-Bold") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesBold);
+    } else if (fontFamily === "Times-Italic") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesItalic);
+    } else if (fontFamily === "Times-BoldItalic") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesBoldItalic);
+    } else if (fontFamily === "Courier") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
+    } else if (fontFamily === "Courier-Bold") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.CourierBold);
+    } else if (fontFamily === "Courier-Oblique") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.CourierOblique);
+    } else if (fontFamily === "Courier-BoldOblique") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.CourierBoldOblique);
+    } else if (fontFamily === "Symbol") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Symbol);
+    } else if (fontFamily === "ZapfDingbats") {
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.ZapfDingbats);
+    } else if (fontFamily === "TimesRoman") {
+      // Legacy support for old naming
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+    } else {
+      // Default fallback
+      embedFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    }
+
+    // Calculate text dimensions
+    const lines = text.split("\n");
+    let textWidth = 0;
+    lines.forEach((line) => {
+      const lineWidth = embedFont.widthOfTextAtSize(line, fontSize);
+      if (lineWidth > textWidth) {
+        textWidth = lineWidth;
+      }
+    });
+
+    // Calculate center of the component in PDF coordinates
+    // HTML (0,0) is top-left. PDF (0,0) is bottom-left.
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+
+    const pdfCx = pageX + cx;
+    const pdfCy = pageY + operationPageHeight - cy;
+
+    // Rotation
+    const pdfRotation = -rotation;
+    const rad = (pdfRotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    // Vertical offset for the first line baseline from center
+    const v = (fontSize - (lines.length - 1) * fontLineHeight) / 2;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineWidth = embedFont.widthOfTextAtSize(line, fontSize);
+
+      let xLocal;
+      if (alignment === "left") {
+        xLocal = -textWidth / 2;
+      } else if (alignment === "right") {
+        xLocal = textWidth / 2 - lineWidth;
+      } else {
+        // center
+        xLocal = -lineWidth / 2;
+      }
+
+      const yLocal = -v - i * fontLineHeight;
+
+      const xRot = xLocal * cos - yLocal * sin;
+      const yRot = xLocal * sin + yLocal * cos;
+
+      const drawX = pdfCx + xRot;
+      const drawY = pdfCy + yRot;
+
+      await pdfPage.drawText(line, {
+        x: drawX,
+        y: drawY,
+        color: PDFLib.rgb(fontColor.red, fontColor.green, fontColor.blue),
+        font: embedFont,
+        size: fontSize,
+        opacity: opacity,
+        rotate: PDFLib.degrees(pdfRotation),
+      });
+
+      // Draw underline if specified
+      if (underline) {
+        const underlineOffset = -2; // 2 units below baseline
+
+        const uStart = { x: xLocal, y: yLocal + underlineOffset };
+        const uEnd = { x: xLocal + lineWidth, y: yLocal + underlineOffset };
+
+        const rStart = {
+          x: uStart.x * cos - uStart.y * sin,
+          y: uStart.x * sin + uStart.y * cos,
+        };
+        const rEnd = {
+          x: uEnd.x * cos - uEnd.y * sin,
+          y: uEnd.x * sin + uEnd.y * cos,
+        };
+
+        pdfPage.drawLine({
+          start: { x: pdfCx + rStart.x, y: pdfCy + rStart.y },
+          end: { x: pdfCx + rEnd.x, y: pdfCy + rEnd.y },
+          thickness: Math.max(1, fontSize / 12),
+          color: PDFLib.rgb(fontColor.red, fontColor.green, fontColor.blue),
+          opacity: opacity,
+        });
+      }
+    }
   }
 
   static async drawImageOnPage(pdfDoc, pdfPage, operation) {
@@ -687,6 +886,30 @@ class PDFGenerator {
         }
       }
     }
+  }
+
+  static async drawNoteOnPage(pdfDoc, pdfPage, operation) {
+    const pageHeight = pdfPage.getHeight();
+    const { x, y, width, height, text, color } = operation;
+
+    // Convert hex color to RGB array [0-1]
+    const rgbColor = PDFGenerator.hexToRgb(color);
+    const colorArray = [rgbColor.red, rgbColor.green, rgbColor.blue];
+
+    const noteDict = pdfDoc.context.obj({
+      Type: "Annot",
+      Subtype: "Text",
+      Rect: [x, pageHeight - y - height, x + width, pageHeight - y],
+      Contents: PDFLib.PDFString.of(text || ""),
+      C: colorArray,
+      Name: "Comment", // Icon type
+      T: PDFLib.PDFString.of(operation.author || "User"), // Title/Author
+    });
+
+    const noteRef = pdfDoc.context.register(noteDict);
+    const annots = pdfPage.node.get(PDFLib.PDFName.of("Annots")) || pdfDoc.context.obj([]);
+    pdfPage.node.set(PDFLib.PDFName.of("Annots"), annots);
+    annots.push(noteRef);
   }
 }
 

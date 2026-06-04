@@ -20,6 +20,7 @@ class BasicOperationComponent {
     this.wrapperContainer.style.width = `${this.operation.width}px`;
 
     this.wrapperContainer.operation = operation;
+    this.wrapperContainer.component = this;
 
     this.canvasContainer.appendChild(this.wrapperContainer);
 
@@ -361,6 +362,7 @@ class RectangleOperationComponent extends BasicOperationComponent {
     borderWidth = 2,
     borderStyle = "solid",
     opacity = 1.0,
+    subType = null,
   ) => {
     return {
       type: "rectangle",
@@ -377,6 +379,7 @@ class RectangleOperationComponent extends BasicOperationComponent {
       borderColor: borderColor,
       borderWidth: borderWidth,
       borderStyle: borderStyle,
+      subType: subType,
     };
   };
 }
@@ -899,6 +902,359 @@ class LinkOperationComponent extends BasicOperationComponent {
   };
 }
 
+class NoteOperationComponent extends BasicOperationComponent {
+  constructor(operation, canvasContainer) {
+    super(operation, canvasContainer);
+
+    Object.assign(this.wrapperContainer.style, {
+      overflow: "visible",
+      zIndex: "10",
+      pointerEvents: "auto",
+    });
+
+    this.iconContainer = document.createElement("div");
+    this.iconContainer.classList.add("component-content", "note-icon");
+    Object.assign(this.iconContainer.style, {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    });
+
+    this.icon = document.createElement("i");
+    this.icon.classList.add("fa-solid", "fa-comment");
+    Object.assign(this.icon.style, { fontSize: "100%", cursor: "pointer" });
+    this.iconContainer.appendChild(this.icon);
+
+    this.tooltip = document.createElement("div");
+    this.tooltip.classList.add("note-tooltip");
+    Object.assign(this.tooltip.style, {
+      display: "none",
+      position: "absolute",
+      left: "100%",
+      top: "0",
+      minWidth: "250px",
+      zIndex: "10000",
+      border: "1px solid #999",
+      boxShadow: "2px 2px 5px rgba(0,0,0,0.2)",
+      fontSize: "12px",
+      textAlign: "left",
+      cursor: "default",
+    });
+
+    this.wrapperContainer.append(this.iconContainer, this.tooltip);
+
+    this.wrapperContainer.addEventListener("mouseenter", () => {
+      this.tooltip.style.display = "block";
+      this.wrapperContainer.style.zIndex = "10000";
+    });
+
+    this.wrapperContainer.addEventListener("mouseleave", () => {
+      this.tooltip.style.display = "none";
+      this.wrapperContainer.style.zIndex = "10";
+    });
+
+    this.wrapperContainer.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.fireEvent("pdfeditor.editNote");
+    });
+
+    this.initializeOperation();
+    this.renderTooltipContent();
+  }
+
+  renderTooltipContent = () => {
+    const op = this.getOperation();
+    const {
+      text = "",
+      author = "User",
+      backgroundColor = "#ffff88",
+      textColor = "#000000",
+      fontFamily = "Helvetica",
+      fontSize = 12,
+      color = "#FFFF00",
+    } = op;
+
+    // Clear existing content
+    this.tooltip.innerHTML = "";
+    // Header with static icon and dynamic timestamp
+    const header = document.createElement("div");
+    header.style.padding = "5px";
+    header.style.borderBottom = "1px solid rgba(0,0,0,0.1)";
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.fontWeight = "bold";
+    const headerLeft = document.createElement("span");
+    // Static markup; no user-controlled data here.
+    headerLeft.innerHTML = '<i class="fa-regular fa-comment-alt"></i> Note';
+    const headerRight = document.createElement("span");
+    headerRight.style.fontWeight = "normal";
+    headerRight.style.fontSize = "0.9em";
+    headerRight.textContent = new Date().toLocaleString();
+    header.appendChild(headerLeft);
+    header.appendChild(headerRight);
+    // Author section
+    const authorDiv = document.createElement("div");
+    authorDiv.style.padding = "5px 10px 2px 10px";
+    authorDiv.style.fontWeight = "bold";
+    const authorSpan = document.createElement("span");
+    authorSpan.textContent = author;
+    authorDiv.appendChild(authorSpan);
+    // Text section
+    const textDiv = document.createElement("div");
+    textDiv.style.padding = "2px 10px 10px 10px";
+    textDiv.style.minHeight = "50px";
+    textDiv.style.whiteSpace = "pre-wrap";
+    textDiv.textContent = text;
+    this.tooltip.appendChild(header);
+    this.tooltip.appendChild(authorDiv);
+    this.tooltip.appendChild(textDiv);
+
+    Object.assign(this.tooltip.style, {
+      backgroundColor,
+      color: textColor,
+      fontFamily,
+      fontSize: fontSize + "px",
+    });
+    this.icon.style.color = color;
+  };
+
+  operationChanged = (property, value) => {
+    switch (property) {
+      case "color":
+        this.icon.style.color = value;
+        break;
+      case "backgroundColor":
+        this.tooltip.style.backgroundColor = value;
+        break;
+      case "text":
+      case "author":
+        this.renderTooltipContent();
+        break;
+      case "textColor":
+        this.tooltip.style.color = value;
+        break;
+    }
+  };
+
+  static createDefaultOperation = (
+    id,
+    x,
+    y,
+    width = 30,
+    height = 30,
+    text = "New Note",
+    color = "#FFFF00",
+    backgroundColor = "#FFFF88",
+    textColor = "#000000",
+    fontFamily = "Helvetica",
+    fontSize = 12,
+    author = "User",
+  ) => {
+    return {
+      type: "note",
+      operation: "create",
+      name: "",
+      id: id,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      text: text,
+      color: color,
+      backgroundColor: backgroundColor,
+      textColor: textColor,
+      fontFamily: fontFamily,
+      fontSize: fontSize,
+      author: author,
+      opacity: 1.0,
+    };
+  };
+}
+
+class WatermarkOperationComponent extends BasicOperationComponent {
+  constructor(operation, canvasContainer) {
+    super(operation, canvasContainer);
+
+    this.shadow = document.createElement("div");
+    this.shadow.classList.add("component-content");
+    this.shadow.style.width = "auto";
+    this.shadow.style.height = "auto";
+    this.shadow.style.whiteSpace = "pre-wrap";
+    this.shadow.style.overflowWrap = "break-word";
+    this.shadow.style.display = "inline-block";
+    this.shadow.style.lineHeight = "1.2";
+    this.shadow.style.overflow = "visible";
+    this.shadow.style.paddingTop = "1px";
+    this.shadow.contentEditable = false;
+    this.shadow.style.pointerEvents = "none"; // Watermarks shouldn't be editable
+    this.shadow.style.textAlign = this.operation.alignment || "center";
+
+    this.wrapperContainer.appendChild(this.shadow);
+    this.initializeOperation();
+
+    this.wrapperContainer.addEventListener("dblclick", (event) => {
+      event.stopPropagation();
+      this.fireEvent("pdfeditor.editWatermark");
+    });
+
+    // Initial size update
+    setTimeout(this.updateSize, 0);
+  }
+
+  updateSize = () => {
+    const temp = document.createElement("div");
+    temp.style.position = "absolute";
+    temp.style.visibility = "hidden";
+    temp.style.whiteSpace = "pre-wrap";
+    temp.style.overflowWrap = "break-word";
+    temp.style.display = "inline-block";
+    temp.style.lineHeight = "1.2";
+    temp.style.font =
+      this.shadow.style.font || `${this.operation.fontSize}px ${this.operation.fontFamily}`;
+    temp.style.fontSize = this.shadow.style.fontSize;
+    temp.style.fontFamily = this.shadow.style.fontFamily;
+    temp.style.fontWeight = this.shadow.style.fontWeight;
+    temp.style.fontStyle = this.shadow.style.fontStyle;
+    temp.textContent = this.shadow.textContent || "WATERMARK";
+
+    document.body.appendChild(temp);
+    const width = Math.max(temp.offsetWidth + 8, 20);
+    const height = Math.max(temp.offsetHeight + 8, 20);
+    document.body.removeChild(temp);
+
+    this.operation.width = width;
+    this.operation.height = height;
+    this.wrapperContainer.style.width = `${width}px`;
+    this.wrapperContainer.style.height = `${height}px`;
+
+    if (this.wrapperContainer.moveable) {
+      this.wrapperContainer.moveable.updateRect();
+    }
+  };
+
+  makeMoveable = () => {
+    const deleteAble = this.createDeleteAble();
+
+    this.wrapperContainer.moveable = new Moveable(this.canvasContainer, {
+      target: this.wrapperContainer,
+      container: this.canvasContainer,
+      draggable: true,
+      resizable: false,
+      rotatable: true, // Enable rotation for watermarks
+      origin: false,
+      ables: [deleteAble],
+      props: { deleteViewable: true },
+    });
+
+    this.wrapperContainer.moveable.on("drag", ({ target, left, top }) => {
+      target.style.left = `${left}px`;
+      target.style.top = `${top}px`;
+      this.operation.x = left;
+      this.operation.y = top;
+      this.fireEvent("pdfeditor.componentDragging");
+    });
+
+    this.wrapperContainer.moveable.on("rotate", ({ target, transform, rotation }) => {
+      target.style.transform = transform;
+      // Store rotation angle directly from the event to avoid parsing the transform string
+      if (typeof rotation === "number") {
+        this.operation.rotation = rotation;
+      }
+    });
+
+    this.wrapperContainer.moveable.updateRect();
+  };
+
+  operationChanged = (property, value) => {
+    switch (property) {
+      case "text":
+        this.shadow.textContent = value;
+        this.updateSize();
+        break;
+      case "color":
+        this.shadow.style.color = value;
+        break;
+      case "fontSize":
+        this.shadow.style.fontSize = value + "px";
+        this.updateSize();
+        break;
+      case "fontFamily":
+        this.shadow.style.fontFamily = value;
+        this.updateSize();
+        break;
+      case "opacity":
+        this.shadow.style.opacity = value;
+        break;
+      case "bold":
+        this.shadow.style.fontWeight = value ? "bold" : "normal";
+        this.updateSize();
+        break;
+      case "italic":
+        this.shadow.style.fontStyle = value ? "italic" : "normal";
+        this.updateSize();
+        break;
+      case "underline":
+        this.shadow.style.textDecoration = value ? "underline" : "none";
+        break;
+      case "alignment":
+        this.shadow.style.textAlign = value;
+        break;
+      case "rotation":
+        this.wrapperContainer.style.transform = `rotate(${value}deg)`;
+        break;
+    }
+  };
+
+  static createDefaultOperation = (
+    id,
+    x,
+    y,
+    width = 200,
+    height = 50,
+    text = "WATERMARK",
+    fontFamily = "Helvetica",
+    fontSize = 126,
+    color = "#1E1E1E",
+    opacity = 0.5,
+    rotation = 0,
+    bold = false,
+    italic = false,
+    underline = false,
+    alignment = "center",
+    groupId = null,
+  ) => {
+    return {
+      type: "watermark",
+      operation: "create",
+      name: "",
+      identifier: id,
+      height: height,
+      width: width,
+      x: x,
+      y: y,
+      xPadding: 2,
+      yPadding: 5,
+      text: text,
+      fontFamily: fontFamily,
+      color: color,
+      fontSize: fontSize,
+      lineHeight: 1.2,
+      opacity: opacity,
+      wordBreak: "break-all",
+      rotation: rotation,
+      bold: bold,
+      italic: italic,
+      underline: underline,
+      alignment: alignment,
+      groupId: groupId,
+    };
+  };
+}
+
 export {
   BasicOperationComponent,
   ImageOperationComponent,
@@ -908,4 +1264,6 @@ export {
   TextFieldOperationComponent,
   CheckboxOperationComponent,
   LinkOperationComponent,
+  NoteOperationComponent,
+  WatermarkOperationComponent,
 };
